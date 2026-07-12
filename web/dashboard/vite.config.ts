@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     preact(),
     compression({
-      algorithm: 'gzip',
+      algorithms: ['gzip'],
       include: /\.(js|css|html|svg)$/,
       threshold: 1024,
     }),

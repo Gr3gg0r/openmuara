@@ -42,3 +42,4 @@ internal/ui/dashboard-dist/*.gz
 # Playwright outputs
 test-results/
 playwright-report/
+internal/ui/dashboard-dist/*.br
