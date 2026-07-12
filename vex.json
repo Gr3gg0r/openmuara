@@ -1,0 +1,16 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-09T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "OpenMuara",
+        "name": "manual-vex",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "vulnerabilities": []
+}

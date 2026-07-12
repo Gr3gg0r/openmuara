@@ -1,0 +1,168 @@
+version: '3'
+
+vars:
+  COVERAGE_PROFILE: coverage.out
+  GIT_SHA:
+    sh: git rev-parse HEAD
+  GIT_SHORT_SHA:
+    sh: git rev-parse --short HEAD
+  BUILD_TIME:
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  LDFLAGS_BASE: -s -w -X github.com/openmuara/openmuara/internal/version.Commit={{.GIT_SHA}} -X github.com/openmuara/openmuara/internal/version.BuildTime={{.BUILD_TIME}}
+  LDFLAGS_DEV: '{{.LDFLAGS_BASE}} -X github.com/openmuara/openmuara/internal/version.Version=dev-{{.GIT_SHORT_SHA}}'
+
+tasks:
+  build:
+    desc: Build all Go binaries (includes UI build)
+    cmds:
+      - task: ui:build
+      - go build -trimpath -buildvcs=false -ldflags "{{.LDFLAGS_DEV}}" ./...
+
+  test:
+    desc: Run all tests with race detector and coverage
+    cmds:
+      - go test -race -coverprofile={{.COVERAGE_PROFILE}} ./...
+      - cmd: go tool cover -func={{.COVERAGE_PROFILE}} | tail -1
+        silent: true
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Check Go formatting
+    cmds:
+      - test -z "$(gofmt -l .)"
+
+  run:
+    desc: Build and run muara locally
+    cmds:
+      - go build -trimpath -buildvcs=false -ldflags "{{.LDFLAGS_DEV}}" -o bin/muara ./cmd/muara
+      - ./bin/muara init
+      - ./bin/muara start
+
+  coverage:
+    desc: Run tests with coverage and enforce 80% threshold
+    cmds:
+      - scripts/check-coverage.sh 80
+
+  check:
+    desc: Run all quality gates (fmt, vet, lint, test, coverage, ui)
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: lint
+      - task: test
+      - task: coverage
+      - task: ui:check
+
+  ui:build:
+    desc: Build the dashboard SPA into the Go embed directory
+    cmds:
+      - cd web/dashboard && npm ci && npm run build
+
+  ui:test:
+    desc: Run dashboard unit tests
+    cmds:
+      - cd web/dashboard && npm ci && npm run test:ci
+
+  ui:check:
+    desc: Build dashboard, run tests, and enforce bundle-size budget
+    cmds:
+      - task: ui:build
+      - task: ui:test
+      - cd web/dashboard && npm run bundle-size
+
+  ui:e2e:
+    desc: Run Playwright E2E tests against a hardened local server
+    cmds:
+      - cd web/dashboard && npm run test:e2e
+
+  dev:
+    desc: Run the Go server and Vite dev server concurrently (start Go first)
+    cmds:
+      - go build -trimpath -buildvcs=false -ldflags "{{.LDFLAGS_DEV}}" -o bin/muara ./cmd/muara
+      - ./bin/muara init || true
+      - |
+        ./bin/muara start &
+        GO_PID=$!
+        cd web/dashboard && npm run dev &
+        UI_PID=$!
+        trap 'kill $GO_PID $UI_PID 2>/dev/null || true' EXIT
+        wait
+
+  smoke:
+    desc: Run the E2E smoke test
+    cmds:
+      - ./scripts/smoke-test.sh
+
+  vuln:
+    desc: Run govulncheck if available
+    cmds:
+      - scripts/check-vuln.sh
+
+  security:
+    desc: Run gosec if available
+    cmds:
+      - scripts/check-gosec.sh
+
+  secrets:
+    desc: Run gitleaks secret scan if available
+    cmds:
+      - scripts/check-gitleaks.sh
+
+  forbidden:
+    desc: Check for forbidden patterns in production code
+    cmds:
+      - scripts/check-forbidden.sh
+
+  scripts:
+    desc: Run shellcheck on shell scripts if available
+    cmds:
+      - scripts/check-scripts.sh
+
+  sizes:
+    desc: Run advisory file/function/line size checks
+    cmds:
+      - scripts/check-sizes.sh
+
+  quality:
+    desc: Run the full quality matrix
+    cmds:
+      - task: check
+      - task: smoke
+      - task: vuln
+      - task: forbidden
+      - task: scripts
+      - task: sizes
+      - ./scripts/audit-trackers.sh
+
+  release:build:
+    desc: Build cross-platform release binaries
+    cmds:
+      - mkdir -p dist
+      - |
+        for pair in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+          GOOS="${pair%/*}"
+          GOARCH="${pair#*/}"
+          EXT=""
+          [ "$GOOS" = "windows" ] && EXT=".exe"
+          BIN="muara-${GOOS}-${GOARCH}${EXT}"
+          GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -buildvcs=false -ldflags "{{.LDFLAGS_BASE}} -X github.com/openmuara/openmuara/internal/version.Version=$(cat VERSION)" -o "dist/$BIN" ./cmd/muara
+          tar -czf "dist/${BIN}.tar.gz" -C dist "$BIN"
+        done
+
+  release:docker:
+    desc: Build local Docker image
+    cmds:
+      - docker build -t openmuara:latest .
+
+  default:
+    cmds:
+      - task: check

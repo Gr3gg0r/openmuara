@@ -1,0 +1,46 @@
+name: Provider emulation request
+description: Suggest a new payment provider to emulate in OpenMuara
+title: '[provider] '
+labels: ['provider', 'enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a provider. Please include links to the real
+        provider's API docs and the endpoints you need to emulate.
+  - type: input
+    id: provider_name
+    attributes:
+      label: Provider name
+      placeholder: e.g., PayPal, Midtrans, Razorpay
+    validations:
+      required: true
+  - type: input
+    id: docs_url
+    attributes:
+      label: API documentation URL
+    validations:
+      required: true
+  - type: textarea
+    id: endpoints
+    attributes:
+      label: Endpoints to emulate
+      placeholder: |
+        - POST /v1/charges
+        - POST /v1/webhooks
+    validations:
+      required: true
+  - type: textarea
+    id: signature
+    attributes:
+      label: Signature or authentication scheme
+      description: How does the provider sign or authenticate requests?
+    validations:
+      required: false
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What are you testing that requires this provider?
+    validations:
+      required: true

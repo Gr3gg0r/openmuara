@@ -1,0 +1,29 @@
+{
+  "name": "ipay88",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/ePayment/entry.asp"
+    },
+    {
+      "method": "POST",
+      "path": "/ePayment/enquiry.asp"
+    },
+    {
+      "method": "GET",
+      "path": "/_admin/ipay88/pay/{refNo}"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/ipay88/pay/{refNo}"
+    },
+    {
+      "method": "POST",
+      "path": "/ipay88/response"
+    },
+    {
+      "method": "POST",
+      "path": "/ipay88/backend"
+    }
+  ]
+}

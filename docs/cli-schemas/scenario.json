@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "muara scenario --json",
+  "description": "Server response from `muara scenario <outcome> <ref> --json`. The shape is the provider's simulation result.",
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "description": "Simulation outcome, e.g. 'ok' or 'failed'."
+    },
+    "reference": {
+      "type": "string",
+      "description": "Transaction reference that was simulated."
+    },
+    "provider": {
+      "type": "string",
+      "description": "Provider that handled the simulation."
+    }
+  }
+}

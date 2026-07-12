@@ -1,0 +1,391 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions: {}
+
+jobs:
+  ui-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/dashboard/package-lock.json
+
+      - name: Install UI dependencies
+        run: cd web/dashboard && npm ci
+
+      - name: Audit production UI dependencies
+        run: cd web/dashboard && npm audit --production
+
+      - name: Build dashboard
+        run: cd web/dashboard && npm run build
+
+      - name: Check bundle size
+        run: cd web/dashboard && npm run bundle-size
+
+      - name: Upload built dashboard
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+  ui-test:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/dashboard/package-lock.json
+
+      - name: Install UI dependencies
+        run: cd web/dashboard && npm ci
+
+      - name: Run dashboard tests
+        run: cd web/dashboard && npm run test:ci
+
+  ui-e2e:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/dashboard/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Install UI dependencies
+        run: cd web/dashboard && npm ci
+
+      - name: Install Playwright browsers
+        run: cd web/dashboard && npx playwright install chromium
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+      - name: Run dashboard E2E tests
+        run: cd web/dashboard && npm run test:e2e
+
+      - name: Run dashboard contrast regression check
+        run: cd web/dashboard && npm run a11y:contrast
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
+        with:
+          version: v2.12.2
+
+  unit:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+      - name: Test with race detector
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Enforce 80% coverage
+        run: scripts/check-coverage.sh 80
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+      - name: Smoke test
+        run: ./scripts/smoke-test.sh
+
+  vuln:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  gosec:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Run gosec
+        uses: securego/gosec@849570622f56a251c015c0e2417aebafc0216e17 # master
+        with:
+          args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3
+        if: always()
+        with:
+          sarif_file: gosec.sarif
+
+  secrets:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  quality:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26'
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/dashboard/package-lock.json
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Install UI dependencies
+        run: cd web/dashboard && npm ci
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+      - name: Full quality matrix
+        run: task quality
+
+  known-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Check KNOWN_ISSUES sync
+        continue-on-error: true
+        run: ./scripts/check-known-issues.sh
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: ui-build
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: dashboard-dist
+          path: internal/ui/dashboard-dist/
+
+      - name: Build Docker image
+        run: docker build -t openmuara:ci .
+
+      - name: Start container and verify health
+        run: |
+          docker run -d --name muara-ci -p 127.0.0.1:9000:9000 openmuara:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9000/healthz 2>/dev/null | grep -q '"status":"ok"'; then
+              echo "Container is healthy"
+              docker rm -f muara-ci
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Container did not become healthy" >&2
+          docker logs muara-ci
+          docker rm -f muara-ci
+          exit 1
+
+      - name: Build distroless image
+        run: docker build -f Dockerfile.distroless -t openmuara:ci-distroless .
+
+  install-dry-run:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Dry-run install latest
+        run: bash scripts/install.sh --dry-run
+
+      - name: Dry-run install pinned version
+        run: VERSION=v1.0.0 bash scripts/install.sh --dry-run
+
+      - name: Verify OS/arch detection
+        run: |
+          bash scripts/install.sh --dry-run 2>&1 | grep -E "OS:\s+(linux|darwin|windows)"
+          bash scripts/install.sh --dry-run 2>&1 | grep -E "Arch:\s+(amd64|arm64)"
+
+  changelog-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Verify VERSION matches changelog section
+        run: |
+          VERSION="$(cat VERSION)"
+          if ! grep -qE "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "CHANGELOG.md is missing a section for $VERSION" >&2
+            exit 1
+          fi
+          echo "CHANGELOG.md has section for $VERSION"

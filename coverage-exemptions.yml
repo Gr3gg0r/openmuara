@@ -1,0 +1,65 @@
+# Coverage exemptions for OpenMuara.
+# Every exemption must have a rationale, owner, and review date.
+
+exemptions:
+  go:
+    - package: github.com/openmuara/openmuara/examples/checkout-store
+      rationale: Example application, not part of the distributed library.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: excluded
+
+    - package: github.com/openmuara/openmuara/internal/provider/factory
+      rationale: Thin registry/factory layer; smoke test is sufficient.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: smoke_test_only
+
+    - package: github.com/openmuara/openmuara/internal/ui
+      rationale: Embeds generated dashboard assets; mostly static file serving.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: "70"
+
+    - package: github.com/openmuara/openmuara/internal/provider/simple
+      rationale: Reference/demo YAML-driven provider; coverage focused on public API and runtime wiring.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: "45"
+
+    - package: github.com/openmuara/openmuara/internal/provider/conform
+      rationale: Conformance golden-file tests; uncovered lines are update-path error branches.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: "79"
+
+    - package: github.com/openmuara/openmuara/internal/version
+      rationale: Build-info fallback paths depend on git state and cannot be exercised reliably in tests.
+      owner: AI Agent
+      review_date: 2026-10-09
+      target: "70"
+
+  dashboard:
+    - pattern: "src/main.tsx"
+      rationale: Application entry point; wiring only.
+      target: report_only
+
+    - pattern: "src/app.tsx"
+      rationale: Top-level routing/shell wiring; tested indirectly via E2E.
+      target: report_only
+
+    - pattern: "src/types.ts"
+      rationale: Type definitions only; no runtime logic.
+      target: excluded
+
+    - pattern: "*.config.ts"
+      rationale: Build/configuration files.
+      target: excluded
+
+    - pattern: "scripts/**"
+      rationale: Build/helper scripts, not application logic.
+      target: excluded
+
+    - pattern: "e2e/**"
+      rationale: End-to-end tests use Playwright, not Vitest.
+      target: excluded

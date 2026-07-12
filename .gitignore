@@ -1,0 +1,55 @@
+# Agent workspace — local planning artifacts, not committed
+# This is a local-only workspace for human + AI coordination.
+# Planning docs, prompts, and findings stay on your machine.
+.agents/
+
+# Legacy local workspace directories
+# .toyol/ is the old project workspace; kept ignored until local clones are migrated.
+.toyol/
+
+# Local AI/workflow directories
+.gstack/
+.playwright-mcp/
+
+# Runtime artifacts — generated during local runs, do not commit
+queue-logs/
+screenshots/
+qa/
+state/
+*.log
+.muara/
+
+# Build artifacts
+bin/
+coverage.out
+coverage.html
+web/dashboard/coverage/
+
+# Generated screenshots / QA artifacts
+dashboard-mobile-*.png
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+*.swp
+*.swo
+.vscode/settings.json
+.idea/
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+*.tmp
+
+# Generated dashboard assets (placeholder index.html remains tracked)
+internal/ui/dashboard-dist/assets/
+internal/ui/dashboard-dist/*.gz
+
+# Playwright outputs
+test-results/
+playwright-report/

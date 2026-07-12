@@ -1,0 +1,5 @@
+screenshots/
+qa/
+state/
+findings/*.log
+*.tmp

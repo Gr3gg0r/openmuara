@@ -1,0 +1,45 @@
+{
+  "name": "fawry",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/fawry/charge"
+    },
+    {
+      "method": "GET",
+      "path": "/fawry/payment-status"
+    },
+    {
+      "method": "POST",
+      "path": "/fawry/webhook"
+    },
+    {
+      "method": "POST",
+      "path": "/fawry/v1/charge"
+    },
+    {
+      "method": "POST",
+      "path": "/fawry/v2/charge"
+    },
+    {
+      "method": "POST",
+      "path": "/fawry/v1/webhook"
+    },
+    {
+      "method": "POST",
+      "path": "/fawry/v2/webhook"
+    },
+    {
+      "method": "GET",
+      "path": "/_admin/fawry-escape"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/fawry-escape"
+    }
+  ],
+  "versions": [
+    "v1",
+    "v2"
+  ]
+}

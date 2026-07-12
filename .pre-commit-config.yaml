@@ -1,0 +1,65 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        entry: gofmt -l -w
+        language: system
+        types: [go]
+        pass_filenames: true
+
+      - id: go-vet
+        name: go vet
+        entry: go vet ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-test
+        name: go test
+        entry: go test ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: check-forbidden
+        name: check forbidden patterns
+        entry: scripts/check-forbidden.sh
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: gosec
+        name: gosec
+        entry: gosec -no-fail ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks detect --source .
+        language: system
+        pass_filenames: false
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+        pass_filenames: true
+
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        types: [yaml]
+        files: ^\.github/workflows/
+        pass_filenames: true

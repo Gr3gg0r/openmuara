@@ -1,0 +1,6 @@
+# Local-only initiative artifacts
+screenshots/
+qa/
+state/
+findings/*.log
+*.tmp

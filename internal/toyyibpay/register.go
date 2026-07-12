@@ -1,0 +1,12 @@
+package toyyibpay
+
+import (
+	"github.com/openmuara/openmuara/internal/provider"
+	"github.com/openmuara/openmuara/internal/provider/factory"
+)
+
+func init() {
+	factory.MustRegister("toyyibpay", func(_ map[string]any) (provider.Provider, error) {
+		return NewProvider(), nil
+	})
+}

@@ -1,0 +1,9 @@
+{
+  "detail": "Contract test",
+  "amount": 10.5,
+  "order_id": "senangpay-contract-ref",
+  "name": "Test Customer",
+  "email": "test@example.com",
+  "phone": "0123456789",
+  "hash": "bc439e2bf2312c41449f58c108cb33d0"
+}

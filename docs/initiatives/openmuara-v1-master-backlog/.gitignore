@@ -1,0 +1,8 @@
+# Agent-generated artifacts — never commit
+screenshots/
+qa/
+state/
+findings/*.tmp
+runbooks/*.tmp
+*.log
+.DS_Store

@@ -1,0 +1,119 @@
+schema_version: v1
+
+metadata:
+  name: fawry
+  version: 1.0.0
+  description: Fawry Express Checkout emulation
+  author: openmuara
+  supported_versions:
+    - v1
+    - v2
+  tags:
+    - regional
+    - hmac
+
+runtime:
+  type: go
+
+routes:
+  - path: /fawry/charge
+    method: POST
+    action: fawry_charge
+    description: Accept a signed charge request
+    schema_ref: charge_request
+
+  - path: /fawry/payment-status
+    method: GET
+    action: fawry_status
+    description: Query payment status
+
+  - path: /fawry/webhook
+    method: POST
+    action: fawry_v1_webhook
+    description: Receive Fawry notifications (default v1)
+
+  - path: /fawry/v1/webhook
+    method: POST
+    action: fawry_v1_webhook
+    description: Receive Fawry v1 legacy notifications
+
+  - path: /fawry/v2/webhook
+    method: POST
+    action: fawry_v2_webhook
+    description: Receive Fawry V2 server notifications
+
+  - path: /_admin/fawry-escape
+    method: GET
+    action: fawry_escape_page
+    description: Render payment outcome simulation page
+
+  - path: /_admin/fawry-escape
+    method: POST
+    action: fawry_escape_action
+    description: Simulate payment outcome and dispatch webhook
+
+schemas:
+  requests:
+    charge_request:
+      fields:
+        - name: merchant_code
+          json_name: merchantCode
+          type: string
+          required: true
+        - name: merchant_ref_num
+          json_name: merchantRefNum
+          type: string
+          required: true
+        - name: customer_profile_id
+          json_name: customerProfileId
+          type: string
+          required: false
+        - name: return_url
+          json_name: returnUrl
+          type: string
+          required: true
+        - name: charge_items
+          json_name: chargeItems
+          type: array
+          required: true
+        - name: signature
+          json_name: signature
+          type: string
+          required: true
+
+signature:
+  algorithm: fawry_sha256
+  fields:
+    - merchant_code
+    - merchant_ref_num
+    - customer_profile_id
+    - return_url
+    - charge_items
+    - signature
+  secret_key: providers.fawry.config.merchant_security_key
+
+webhooks:
+  - name: fawry_v2_payment
+    event: payment.completed
+    method: POST
+    template:
+      requestId: "{{ .RequestID }}"
+      merchantRefNumber: "{{ .Reference }}"
+      orderStatus: "{{ .Status }}"
+
+fixtures:
+  - name: valid_charge
+    route_ref: /fawry/charge
+    request:
+      merchantCode: muara-merchant-code
+      merchantRefNum: ref-123
+      customerProfileId: user-123
+      returnUrl: http://127.0.0.1:9999/callback
+      chargeItems:
+        - itemId: prod_test_123
+          price: 99.99
+          quantity: 1
+      signature: placeholder
+    response:
+      status: ok
+      reference: ref-123

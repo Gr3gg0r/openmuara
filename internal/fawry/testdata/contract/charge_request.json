@@ -1,0 +1,18 @@
+{
+  "merchantCode": "muara-merchant-code",
+  "merchantRefNum": "fawry-contract-ref",
+  "customerEmail": "test@example.com",
+  "customerName": "Test Customer",
+  "customerProfileId": "cust-1",
+  "paymentExpiry": 1893456000,
+  "language": "en",
+  "chargeItems": [
+    {
+      "itemId": "prod-1",
+      "quantity": 1,
+      "price": 99.99
+    }
+  ],
+  "returnUrl": "http://localhost/return",
+  "signature": "d6f8d1f4cac7d9face6ad5fec5bb25b80d52fe6dbc87bf17d8d1ba97577838c6"
+}

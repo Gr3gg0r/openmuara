@@ -1,0 +1,77 @@
+schema_version: v1
+
+metadata:
+  name: ipay88
+  version: 1.0.0
+  description: iPay88 Malaysia payment gateway emulation
+  author: openmuara
+  tags:
+    - regional
+    - sha256
+    - malaysia
+
+runtime:
+  type: go
+  description: iPay88 uses the built-in Go provider because it requires form-encoded request/response flows, a local pay page, and backend/response callbacks.
+
+routes:
+  - path: /ePayment/entry.asp
+    method: POST
+    action: ipay88_payment_request
+    description: Submit a payment request
+
+  - path: /ePayment/enquiry.asp
+    method: POST
+    action: ipay88_requery
+    description: Requery payment status
+
+  - path: /_admin/ipay88/pay/{refNo}
+    method: GET
+    action: ipay88_pay_page
+    description: Render local payment page
+
+  - path: /_admin/ipay88/pay/{refNo}
+    method: POST
+    action: ipay88_pay_action
+    description: Simulate payment outcome
+
+  - path: /ipay88/response
+    method: POST
+    action: ipay88_response
+    description: Merchant response callback
+
+  - path: /ipay88/backend
+    method: POST
+    action: ipay88_backend
+    description: Merchant backend post
+
+signature:
+  algorithm: ipay88_sha256
+  secret_key: providers.ipay88.config.merchant_key
+
+webhooks:
+  - name: ipay88_payment
+    event: payment.completed
+    method: POST
+    template:
+      RefNo: "{{ .Reference }}"
+      Status: "1"
+
+fixtures:
+  - name: valid_payment_request
+    route_ref: /ePayment/entry.asp
+    request:
+      MerchantCode: muara-merchant
+      PaymentId: "2"
+      RefNo: REF-1
+      Amount: "12.50"
+      Currency: MYR
+      ProdDesc: Test
+      UserName: Test User
+      UserEmail: test@example.com
+      UserContact: "+60123456789"
+      SignatureType: SHA256
+      ResponseURL: http://127.0.0.1:9999/response
+      BackendURL: http://127.0.0.1:9999/backend
+    response:
+      status: redirect

@@ -1,0 +1,102 @@
+schema_version: v1
+
+metadata:
+  name: billplz
+  version: 1.0.0
+  description: Billplz v3 API emulation for Malaysian payment testing
+  author: openmuara
+  tags:
+    - regional
+    - hmac
+    - fpx
+    - malaysia
+
+runtime:
+  type: go
+  description: Billplz uses the built-in Go provider because it requires collection/bill storage, payment methods, and x_signature verification.
+
+routes:
+  - path: /api/v3/collections
+    method: POST
+    action: billplz_create_collection
+    description: Create a collection
+
+  - path: /api/v3/collections/{id}
+    method: GET
+    action: billplz_get_collection
+    description: Retrieve a collection
+
+  - path: /api/v3/collections/{id}/payment_methods
+    method: GET
+    action: billplz_list_payment_methods
+    description: List available payment methods
+
+  - path: /api/v3/bills
+    method: POST
+    action: billplz_create_bill
+    description: Create a bill
+
+  - path: /api/v3/bills/{id}
+    method: GET
+    action: billplz_get_bill
+    description: Retrieve a bill
+
+  - path: /api/v3/bills/{id}
+    method: DELETE
+    action: billplz_delete_bill
+    description: Delete a bill
+
+  - path: /_admin/billplz/pay/{id}
+    method: GET
+    action: billplz_pay_page
+    description: Render local payment page
+
+  - path: /_admin/billplz/pay/{id}
+    method: POST
+    action: billplz_pay_action
+    description: Simulate payment outcome
+
+  - path: /billplz/redirect
+    method: GET
+    action: billplz_redirect
+    description: Merchant redirect callback
+
+signature:
+  algorithm: billplz_hmac_sha256
+  secret_key: providers.billplz.config.x_signature_key
+
+webhooks:
+  - name: billplz_bill_paid
+    event: payment.completed
+    method: POST
+    template:
+      id: "{{ .Reference }}"
+      state: "{{ .Status }}"
+      paid: "true"
+
+fixtures:
+  - name: valid_collection
+    route_ref: /api/v3/collections
+    request:
+      title: OpenMuara Collection
+    response:
+      id: col_openmuara
+      title: OpenMuara Collection
+      status: active
+
+  - name: valid_bill
+    route_ref: /api/v3/bills
+    request:
+      collection_id: col_openmuara
+      email: test@example.com
+      name: Test User
+      amount: 1250
+      callback_url: http://127.0.0.1:9999/callback
+      description: Test bill
+      redirect_url: http://127.0.0.1:9999/redirect
+    response:
+      id: bill_openmuara
+      collection_id: col_openmuara
+      paid: false
+      state: due
+      amount: 1250

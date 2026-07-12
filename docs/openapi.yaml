@@ -1,0 +1,2229 @@
+openapi: 3.0.3
+info:
+  title: OpenMuara
+  description: Local-first billing and payment virtualization layer.
+  version: 1.0.0
+  contact:
+    name: OpenMuara
+servers:
+  - url: http://127.0.0.1:9000
+    description: Local development server
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      operationId: healthz
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /readyz:
+    get:
+      summary: Readiness check
+      operationId: readyz
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+
+  /v1/pay:
+    post:
+      summary: Create a provider-agnostic payment
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '201':
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '200':
+          description: Existing payment returned (idempotency hit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/pay/{ref}:
+    get:
+      summary: Get a payment by reference
+      operationId: getPayment
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/refund/{ref}:
+    post:
+      summary: Refund a payment by reference
+      operationId: refundPayment
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Refund recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /_admin/transactions:
+    get:
+      summary: List recent transactions
+      operationId: listTransactions
+      responses:
+        '200':
+          description: Paginated list of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactions'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /_admin/providers:
+    get:
+      summary: List configured and available providers
+      operationId: listProviders
+      responses:
+        '200':
+          description: Provider status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderStatus'
+
+  /_admin/webhooks:
+    get:
+      summary: List recent webhook attempts
+      operationId: listWebhooks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, delivered, failed]
+        - name: provider
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated list of webhook attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhooks'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /_admin/webhooks/replay-all:
+    post:
+      summary: Replay all webhook attempts matching optional filters
+      operationId: replayAllWebhooks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, delivered, failed]
+        - name: provider
+          in: query
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Number of queued replays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replayed:
+                    type: integer
+
+  /_admin/webhooks/{ref}:
+    get:
+      summary: Inspect a webhook attempt
+      operationId: inspectWebhook
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook attempt details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookAttempt'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Clear sensitive webhook payload data
+      operationId: deleteWebhook
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Data cleared
+
+  /_admin/webhooks/{ref}/replay:
+    post:
+      summary: Replay a single webhook attempt
+      operationId: replayWebhook
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Replay queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookAttempt'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /_admin/scenario/{outcome}:
+    post:
+      summary: Simulate a provider outcome for a transaction
+      operationId: simulateScenario
+      parameters:
+        - name: outcome
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [success, fail, timeout]
+        - name: ref
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scenario applied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reference:
+                    type: string
+                  status:
+                    type: string
+                  scenario:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /_admin/webhook-receiver:
+    post:
+      summary: Built-in webhook receiver for local smoke tests
+      operationId: webhookReceiver
+      responses:
+        '200':
+          description: Webhook accepted
+
+  /_admin/fawry-escape:
+    get:
+      summary: Fawry 3-D Secure escape simulation page
+      operationId: fawryEscapePage
+      parameters:
+        - name: ref
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: returnUrl
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: amount
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML escape page
+
+  /fawry/charge:
+    post:
+      summary: Fawry-style charge request
+      operationId: fawryCharge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FawryChargeRequest'
+      responses:
+        '200':
+          description: Charge recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FawryChargeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /fawry/payment-status:
+    get:
+      summary: Fawry payment status inquiry
+      operationId: fawryPaymentStatus
+      parameters:
+        - name: merchantCode
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: merchantRefNum
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: signature
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FawryPaymentStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /fawry/webhook:
+    post:
+      summary: Fawry inbound webhook receiver
+      operationId: fawryWebhook
+      responses:
+        '200':
+          description: Webhook acknowledged
+
+  /default:
+    get:
+      summary: Default provider status
+      operationId: defaultStatus
+      responses:
+        '200':
+          description: Provider status
+
+  /default/charge:
+    post:
+      summary: Default provider example charge
+      operationId: defaultCharge
+      responses:
+        '200':
+          description: Example charge response
+
+  /default/webhook:
+    post:
+      summary: Default provider webhook receiver
+      operationId: defaultWebhook
+      responses:
+        '200':
+          description: Webhook acknowledged
+
+  /v1/checkout/sessions:
+    post:
+      summary: Create a Stripe Checkout session
+      operationId: stripeCreateCheckoutSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeCreateCheckoutSessionRequest'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+
+  /v1/checkout/sessions/{session_id}:
+    get:
+      summary: Retrieve a Stripe Checkout session
+      operationId: stripeGetCheckoutSession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+
+  /v1/checkout/sessions/{session_id}/pay:
+    get:
+      summary: Stripe Checkout payment page
+      operationId: stripeCheckoutPayPage
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML checkout page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Confirm or cancel Stripe Checkout payment
+      operationId: stripeCheckoutPayAction
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [confirm, cancel]
+                payment_method:
+                  type: string
+                  enum: [card, fpx]
+                bank:
+                  type: string
+                card_number:
+                  type: string
+                expiry:
+                  type: string
+                cvc:
+                  type: string
+                csrf_token:
+                  type: string
+      responses:
+        '302':
+          description: Redirects to success_url or cancel_url
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /_admin/stripe/webhooks:
+    get:
+      summary: Stripe webhook configuration page
+      operationId: stripeWebhookConfigPage
+      responses:
+        '200':
+          description: HTML webhook config page
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      summary: Save Stripe webhook configuration
+      operationId: stripeWebhookConfigSave
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                webhook_url:
+                  type: string
+                enabled_events:
+                  type: array
+                  items:
+                    type: string
+                csrf_token:
+                  type: string
+      responses:
+        '302':
+          description: Redirects back to config page
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /_admin/stripe/success:
+    post:
+      summary: Simulate Stripe checkout success
+      operationId: stripeSimulateSuccess
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session marked complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+
+  /_admin/stripe/fail:
+    post:
+      summary: Simulate Stripe checkout failure
+      operationId: stripeSimulateFail
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session marked failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+
+  /_admin/stripe/cancel:
+    post:
+      summary: Simulate Stripe checkout cancellation
+      operationId: stripeSimulateCancel
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session marked cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripeCheckoutSession'
+
+  /v1/payment_intents:
+    post:
+      summary: Create a Stripe PaymentIntent
+      operationId: stripeCreatePaymentIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeCreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: PaymentIntent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePaymentIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/payment_intents/{payment_intent_id}:
+    get:
+      summary: Retrieve a Stripe PaymentIntent
+      operationId: stripeGetPaymentIntent
+      parameters:
+        - name: payment_intent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PaymentIntent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePaymentIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/payment_intents/{payment_intent_id}/confirm:
+    post:
+      summary: Confirm a Stripe PaymentIntent
+      operationId: stripeConfirmPaymentIntent
+      parameters:
+        - name: payment_intent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StripeConfirmPaymentIntentRequest'
+      responses:
+        '200':
+          description: PaymentIntent confirmed or requires action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePaymentIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /v1/payment_intents/{payment_intent_id}/cancel:
+    post:
+      summary: Cancel a Stripe PaymentIntent
+      operationId: stripeCancelPaymentIntent
+      parameters:
+        - name: payment_intent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PaymentIntent canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePaymentIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /_admin/stripe/payment_intent/{payment_intent_id}:
+    get:
+      summary: Stripe PaymentIntent local authentication page
+      operationId: stripePaymentIntentAuthPage
+      parameters:
+        - name: payment_intent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML authentication page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Confirm or cancel Stripe PaymentIntent authentication
+      operationId: stripePaymentIntentAuthAction
+      parameters:
+        - name: payment_intent_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [confirm, cancel]
+                bank:
+                  type: string
+                csrf_token:
+                  type: string
+      responses:
+        '200':
+          description: Updated PaymentIntent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StripePaymentIntent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /senangpay/charge:
+    post:
+      summary: SenangPay-style charge request
+      operationId: senangpayCharge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SenangPayChargeRequest'
+      responses:
+        '200':
+          description: Charge recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SenangPayChargeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /senangpay/callback:
+    get:
+      summary: SenangPay callback
+      operationId: senangpayCallback
+      parameters:
+        - name: order_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirects to return URL
+
+  /senangpay/query:
+    get:
+      summary: SenangPay payment status query
+      operationId: senangpayQuery
+      parameters:
+        - name: order_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: hash
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SenangPayQueryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /senangpay/webhook:
+    post:
+      summary: SenangPay webhook receiver
+      operationId: senangpayWebhook
+      responses:
+        '200':
+          description: Webhook acknowledged
+
+  /api/v3/collections:
+    post:
+      summary: Create a Billplz collection
+      operationId: billplzCreateCollection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillplzCreateCollectionRequest'
+      responses:
+        '200':
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzCollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v3/collections/{id}:
+    get:
+      summary: Get a Billplz collection
+      operationId: billplzGetCollection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzCollectionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v3/bills:
+    post:
+      summary: Create a Billplz bill
+      operationId: billplzCreateBill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillplzCreateBillRequest'
+      responses:
+        '200':
+          description: Bill created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzBillResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v3/bills/{id}:
+    get:
+      summary: Get a Billplz bill
+      operationId: billplzGetBill
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bill details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzBillResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a Billplz bill
+      operationId: billplzDeleteBill
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bill deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzBillResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v3/collections/{id}/payment_methods:
+    get:
+      summary: List Billplz payment methods
+      operationId: billplzPaymentMethods
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzPaymentMethodsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /_admin/billplz/pay/{id}:
+    get:
+      summary: Billplz payment page
+      operationId: billplzPayPage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML payment page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    post:
+      summary: Simulate Billplz payment outcome
+      operationId: billplzPayAction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                outcome:
+                  type: string
+                  enum: [pay, cancel]
+                method:
+                  type: string
+                csrf_token:
+                  type: string
+      responses:
+        '200':
+          description: Bill updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillplzBillResponse'
+        '302':
+          description: Redirects to redirect_url with signature
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /billplz/redirect:
+    get:
+      summary: Billplz redirect endpoint
+      operationId: billplzRedirect
+      parameters:
+        - name: billplz[id]
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirects to merchant redirect_url
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /billplz/webhook:
+    post:
+      summary: Billplz webhook receiver
+      operationId: billplzWebhook
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BillplzWebhookPayload'
+      responses:
+        '200':
+          description: Webhook acknowledged
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /index.php/api/createCategory:
+    post:
+      summary: Create a ToyyibPay category
+      operationId: toyyibpayCreateCategory
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                userSecretKey:
+                  type: string
+                categoryName:
+                  type: string
+                categoryDescription:
+                  type: string
+      responses:
+        '200':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToyyibPayCategoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /index.php/api/getCategoryDetails:
+    post:
+      summary: Get ToyyibPay category details
+      operationId: toyyibpayGetCategoryDetails
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                userSecretKey:
+                  type: string
+                categoryCode:
+                  type: string
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToyyibPayCategory'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /index.php/api/createBill:
+    post:
+      summary: Create a ToyyibPay bill
+      operationId: toyyibpayCreateBill
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ToyyibPayCreateBillRequest'
+      responses:
+        '200':
+          description: Bill created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToyyibPayBillCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /index.php/api/getBillTransactions:
+    post:
+      summary: List ToyyibPay bill transactions
+      operationId: toyyibpayGetBillTransactions
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                userSecretKey:
+                  type: string
+                billCode:
+                  type: string
+      responses:
+        '200':
+          description: Bill transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ToyyibPayBillTransaction'
+
+  /index.php/api/inactiveBill:
+    post:
+      summary: Deactivate a ToyyibPay bill
+      operationId: toyyibpayInactiveBill
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                userSecretKey:
+                  type: string
+                billCode:
+                  type: string
+      responses:
+        '200':
+          description: Bill deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  msg:
+                    type: string
+
+  /_admin/toyyibpay/pay/{billCode}:
+    get:
+      summary: ToyyibPay payment page
+      operationId: toyyibpayPayPage
+      parameters:
+        - name: billCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML payment page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    post:
+      summary: Simulate ToyyibPay payment outcome
+      operationId: toyyibpayPayAction
+      parameters:
+        - name: billCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ['1', '3']
+                payment_method:
+                  type: string
+                csrf_token:
+                  type: string
+      responses:
+        '302':
+          description: Redirects to bill return URL
+
+  /toyyibpay/return:
+    get:
+      summary: ToyyibPay return redirect
+      operationId: toyyibpayReturn
+      parameters:
+        - name: status_id
+          in: query
+          schema:
+            type: string
+        - name: billcode
+          in: query
+          schema:
+            type: string
+        - name: order_id
+          in: query
+          schema:
+            type: string
+        - name: transaction_id
+          in: query
+          schema:
+            type: string
+        - name: msg
+          in: query
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirects to merchant return URL
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /toyyibpay/webhook:
+    post:
+      summary: ToyyibPay webhook receiver
+      operationId: toyyibpayWebhook
+      responses:
+        '200':
+          description: Webhook acknowledged
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /ePayment/entry.asp:
+    post:
+      summary: iPay88 payment entry
+      operationId: ipay88Entry
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IPay88EntryRequest'
+      responses:
+        '303':
+          description: Redirects to admin payment page
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /ePayment/enquiry.asp:
+    post:
+      summary: iPay88 payment enquiry
+      operationId: ipay88Enquiry
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                MerchantCode:
+                  type: string
+                RefNo:
+                  type: string
+                Amount:
+                  type: string
+      responses:
+        '200':
+          description: Requery status (00 = success, 01 = failure)
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /_admin/ipay88/pay/{refNo}:
+    get:
+      summary: iPay88 payment page
+      operationId: ipay88PayPage
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML payment page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Simulate iPay88 payment outcome
+      operationId: ipay88PayAction
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                outcome:
+                  type: string
+                  enum: [pay, cancel]
+                payment_method:
+                  type: string
+                csrf_token:
+                  type: string
+      responses:
+        '200':
+          description: HTML forward to response handler
+
+  /ipay88/response:
+    post:
+      summary: iPay88 response forward
+      operationId: ipay88Response
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IPay88ResponsePayload'
+      responses:
+        '200':
+          description: Response forwarded
+
+  /ipay88/backend:
+    post:
+      summary: iPay88 backend callback
+      operationId: ipay88Backend
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IPay88ResponsePayload'
+      responses:
+        '200':
+          description: RECEIVEOK on success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden — CSRF token missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict — invalid state transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    ReadyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        providers:
+          type: array
+          items:
+            type: string
+        available:
+          type: array
+          items:
+            type: string
+
+    PaginatedTransactions:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+
+    PaginatedWebhooks:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookAttempt'
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            trace_id:
+              type: string
+
+    TransactionItem:
+      type: object
+      properties:
+        itemCode:
+          type: string
+        price:
+          type: number
+          format: double
+        quantity:
+          type: integer
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [new, paid, unpaid, refunded]
+        customerRef:
+          type: string
+        idempotencyKey:
+          type: string
+        reference:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionItem'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentRequest:
+      type: object
+      required: [provider, type, amount, currency, reference]
+      properties:
+        provider:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        customer_ref:
+          type: string
+        reference:
+          type: string
+        idempotency_key:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionItem'
+
+    PaymentResponse:
+      allOf:
+        - $ref: '#/components/schemas/Transaction'
+
+    ProviderStatus:
+      type: object
+      properties:
+        active:
+          type: string
+        enabled:
+          type: array
+          items:
+            type: string
+        available:
+          type: array
+          items:
+            type: string
+
+    WebhookAttempt:
+      type: object
+      properties:
+        id:
+          type: string
+        ref:
+          type: string
+        provider_name:
+          type: string
+        url:
+          type: string
+        status:
+          type: string
+          enum: [pending, delivered, failed]
+        attempts:
+          type: integer
+        last_error:
+          type: string
+        payload:
+          type: string
+          format: byte
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FawryChargeItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+        price:
+          type: number
+          format: double
+        quantity:
+          type: integer
+
+    FawryChargeRequest:
+      type: object
+      required: [merchantCode, merchantRefNum, chargeItems, returnUrl, signature]
+      properties:
+        merchantCode:
+          type: string
+        merchantRefNum:
+          type: string
+        customerEmail:
+          type: string
+        customerName:
+          type: string
+        customerProfileId:
+          type: string
+        paymentExpiry:
+          type: integer
+          format: int64
+        language:
+          type: string
+        chargeItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/FawryChargeItem'
+        returnUrl:
+          type: string
+        signature:
+          type: string
+
+    FawryChargeResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        reference:
+          type: string
+
+    FawryPaymentStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PAID, UNPAID, NEW]
+        reference:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    StripeProductData:
+      type: object
+      properties:
+        name:
+          type: string
+
+    StripePriceData:
+      type: object
+      properties:
+        currency:
+          type: string
+        unit_amount:
+          type: integer
+        product_data:
+          $ref: '#/components/schemas/StripeProductData'
+
+    StripeLineItem:
+      type: object
+      properties:
+        price_data:
+          $ref: '#/components/schemas/StripePriceData'
+        quantity:
+          type: integer
+
+    StripeCreateCheckoutSessionRequest:
+      type: object
+      required: [success_url, line_items, mode]
+      properties:
+        success_url:
+          type: string
+        cancel_url:
+          type: string
+        line_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StripeLineItem'
+        mode:
+          type: string
+        payment_method_types:
+          type: array
+          items:
+            type: string
+            enum: [card, fpx]
+        customer_email:
+          type: string
+        client_reference_id:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    StripeCheckoutSession:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        amount_total:
+          type: integer
+        currency:
+          type: string
+        customer_email:
+          type: string
+        mode:
+          type: string
+        payment_method_types:
+          type: array
+          items:
+            type: string
+            enum: [card, fpx]
+        payment_status:
+          type: string
+        status:
+          type: string
+        success_url:
+          type: string
+        cancel_url:
+          type: string
+        url:
+          type: string
+        client_reference_id:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    StripeCreatePaymentIntentRequest:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: integer
+        currency:
+          type: string
+        payment_method_types:
+          type: array
+          items:
+            type: string
+            enum: [card, fpx]
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        receipt_email:
+          type: string
+
+    StripeConfirmPaymentIntentRequest:
+      type: object
+      required: [payment_method]
+      properties:
+        payment_method:
+          type: string
+
+    StripePaymentIntent:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [requires_confirmation, requires_action, succeeded, canceled]
+        client_secret:
+          type: string
+        payment_method_types:
+          type: array
+          items:
+            type: string
+            enum: [card, fpx]
+        next_action:
+          $ref: '#/components/schemas/StripePaymentIntentNextAction'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        livemode:
+          type: boolean
+        confirmation_method:
+          type: string
+        payment_method:
+          type: string
+
+    StripePaymentIntentNextAction:
+      type: object
+      properties:
+        type:
+          type: string
+        redirect_to_url:
+          $ref: '#/components/schemas/StripePaymentIntentRedirectToURL'
+
+    StripePaymentIntentRedirectToURL:
+      type: object
+      properties:
+        url:
+          type: string
+        return_url:
+          type: string
+
+    StripeEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        type:
+          type: string
+        data:
+          type: object
+          properties:
+            object:
+              oneOf:
+                - $ref: '#/components/schemas/StripeCheckoutSession'
+                - $ref: '#/components/schemas/StripePaymentIntent'
+
+    StripePaymentIntentEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        type:
+          type: string
+        data:
+          type: object
+          properties:
+            object:
+              $ref: '#/components/schemas/StripePaymentIntent'
+
+    SenangPayChargeRequest:
+      type: object
+      required: [detail, amount, order_id, hash]
+      properties:
+        detail:
+          type: string
+        amount:
+          type: number
+          format: double
+        order_id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        hash:
+          type: string
+
+    SenangPayChargeResponse:
+      type: object
+      properties:
+        order_id:
+          type: string
+        payment_url:
+          type: string
+        status:
+          type: string
+        reference:
+          type: string
+
+    SenangPayQueryResponse:
+      type: object
+      properties:
+        order_id:
+          type: string
+        status_id:
+          type: string
+          enum: ['0', '1']
+        status:
+          type: string
+          enum: [paid, unpaid]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    BillplzLogo:
+      type: object
+      properties:
+        thumbnail_url:
+          type: string
+
+    BillplzCollection:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        logo:
+          $ref: '#/components/schemas/BillplzLogo'
+        status:
+          type: string
+        region:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BillplzCreateCollectionRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        logo:
+          $ref: '#/components/schemas/BillplzLogo'
+
+    BillplzCollectionResponse:
+      type: object
+      properties:
+        collection:
+          $ref: '#/components/schemas/BillplzCollection'
+
+    BillplzPaymentMethod:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+
+    BillplzPaymentMethodsResponse:
+      type: object
+      properties:
+        payment_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillplzPaymentMethod'
+
+    BillplzBill:
+      type: object
+      properties:
+        id:
+          type: string
+        collection_id:
+          type: string
+        paid:
+          type: boolean
+        state:
+          type: string
+          enum: [due, paid, deleted]
+        amount:
+          type: integer
+          format: int64
+        description:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        mobile:
+          type: string
+        reference_1:
+          type: string
+        reference_1_label:
+          type: string
+        reference_2:
+          type: string
+        reference_2_label:
+          type: string
+        callback_url:
+          type: string
+        redirect_url:
+          type: string
+        url:
+          type: string
+        paid_amount:
+          type: integer
+          format: int64
+        due_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+
+    BillplzCreateBillRequest:
+      type: object
+      required: [collection_id, email, name, amount, callback_url, description]
+      properties:
+        collection_id:
+          type: string
+        email:
+          type: string
+        mobile:
+          type: string
+        name:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        callback_url:
+          type: string
+        description:
+          type: string
+        redirect_url:
+          type: string
+        reference_1:
+          type: string
+        reference_1_label:
+          type: string
+        reference_2:
+          type: string
+        reference_2_label:
+          type: string
+
+    BillplzBillResponse:
+      type: object
+      properties:
+        bill:
+          $ref: '#/components/schemas/BillplzBill'
+
+    BillplzWebhookPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        collection_id:
+          type: string
+        paid:
+          type: string
+        state:
+          type: string
+        amount:
+          type: string
+        description:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        mobile:
+          type: string
+        reference_1:
+          type: string
+        reference_1_label:
+          type: string
+        reference_2:
+          type: string
+        reference_2_label:
+          type: string
+        callback_url:
+          type: string
+        redirect_url:
+          type: string
+        url:
+          type: string
+        paid_amount:
+          type: string
+        due_at:
+          type: string
+        paid_at:
+          type: string
+        x_signature:
+          type: string
+
+    ToyyibPayCategory:
+      type: object
+      properties:
+        categoryCode:
+          type: string
+        categoryName:
+          type: string
+        categoryDescription:
+          type: string
+        categoryStatus:
+          type: string
+
+    ToyyibPayCategoryResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        msg:
+          type: string
+        data:
+          $ref: '#/components/schemas/ToyyibPayCategory'
+
+    ToyyibPayCreateBillRequest:
+      type: object
+      required: [userSecretKey, categoryCode, billName, billAmount, billReturnUrl, billCallbackUrl]
+      properties:
+        userSecretKey:
+          type: string
+        categoryCode:
+          type: string
+        billName:
+          type: string
+        billDescription:
+          type: string
+        billTo:
+          type: string
+        billEmail:
+          type: string
+        billPhone:
+          type: string
+        billAmount:
+          type: integer
+        billReturnUrl:
+          type: string
+        billCallbackUrl:
+          type: string
+        billPaymentChannel:
+          type: string
+        billExpiryDate:
+          type: string
+        billExpiryDays:
+          type: string
+        billPriceSetting:
+          type: string
+        billPayorInfo:
+          type: string
+        billExternalReferenceNo:
+          type: string
+
+    ToyyibPayBill:
+      type: object
+      properties:
+        billCode:
+          type: string
+        billName:
+          type: string
+        billDescription:
+          type: string
+        billTo:
+          type: string
+        billEmail:
+          type: string
+        billPhone:
+          type: string
+        billAmount:
+          type: integer
+        billStatus:
+          type: string
+        categoryCode:
+          type: string
+        billReturnUrl:
+          type: string
+        billCallbackUrl:
+          type: string
+        billPaymentChannel:
+          type: string
+        billExpiryDate:
+          type: string
+        billExpiryDays:
+          type: string
+        billPriceSetting:
+          type: string
+        billPayorInfo:
+          type: string
+        billPaymentLink:
+          type: string
+        order_id:
+          type: string
+
+    ToyyibPayBillCreateResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        msg:
+          type: string
+        bill:
+          $ref: '#/components/schemas/ToyyibPayBill'
+
+    ToyyibPayBillTransaction:
+      type: object
+      properties:
+        billpaymentStatus:
+          type: string
+        billpaymentChannel:
+          type: string
+        billpaymentAmount:
+          type: string
+        billpaymentRefNo:
+          type: string
+        billpaymentTime:
+          type: string
+
+    IPay88EntryRequest:
+      type: object
+      required: [MerchantCode, RefNo, Amount, Currency, ProdDesc, UserName, UserEmail, UserContact, Signature, SignatureType, ResponseURL, BackendURL]
+      properties:
+        MerchantCode:
+          type: string
+        PaymentId:
+          type: string
+        RefNo:
+          type: string
+        Amount:
+          type: string
+        Currency:
+          type: string
+        ProdDesc:
+          type: string
+        UserName:
+          type: string
+        UserEmail:
+          type: string
+        UserContact:
+          type: string
+        Remark:
+          type: string
+        Lang:
+          type: string
+        Signature:
+          type: string
+        SignatureType:
+          type: string
+        ResponseURL:
+          type: string
+        BackendURL:
+          type: string
+
+    IPay88ResponsePayload:
+      type: object
+      properties:
+        MerchantCode:
+          type: string
+        PaymentId:
+          type: string
+        RefNo:
+          type: string
+        Amount:
+          type: string
+        Currency:
+          type: string
+        Remark:
+          type: string
+        Status:
+          type: string
+        SignatureType:
+          type: string
+        Signature:
+          type: string

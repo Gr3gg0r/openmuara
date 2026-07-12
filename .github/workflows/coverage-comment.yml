@@ -1,0 +1,63 @@
+name: Coverage Comment
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  coverage-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Run tests with coverage
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Check coverage regression on changed modules
+        id: regression
+        continue-on-error: true
+        run: ./scripts/check-coverage-regression.sh origin/${{ github.base_ref }} 10 1.0
+
+      - name: Generate coverage summary
+        id: coverage
+        run: |
+          echo "total=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+          echo "lowest=$(go tool cover -func=coverage.out | awk '{print $1, $3}' | sort -t'(' -k2 -n | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Post coverage comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const total = '${{ steps.coverage.outputs.total }}';
+            const lowest = `${{ steps.coverage.outputs.lowest }}`;
+            const regression = '${{ steps.regression.outcome }}';
+            const status = regression === 'success' ? '✅ no regression' : '⚠️ regression detected (non-blocking during phased rollout)';
+            const body = `## Go Coverage Summary
+
+            - **Total coverage:** ${total}
+            - **Lowest package:** ${lowest}
+            - **Regression gate:** ${status}
+
+            Target: ≥80%. The per-module coverage regression gate currently runs as a warning while baseline stability is measured; it will become a required check after three stable PRs.
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

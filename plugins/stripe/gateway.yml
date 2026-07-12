@@ -1,0 +1,147 @@
+schema_version: v1
+
+metadata:
+  name: stripe
+  version: 1.0.0
+  description: Stripe Checkout and PaymentIntents emulation
+  author: openmuara
+  supported_versions:
+    - v1
+  tags:
+    - card
+    - checkout
+    - payment_intent
+
+runtime:
+  type: go
+  description: Stripe uses the built-in Go provider because it manages Checkout Sessions, PaymentIntents, and signed webhook payloads.
+
+routes:
+  - path: /v1/checkout/sessions
+    method: POST
+    action: stripe_create_checkout_session
+    description: Create a Checkout Session
+
+  - path: /v1/checkout/sessions/{id}/pay
+    method: GET
+    action: stripe_checkout_pay_page
+    description: Render the Checkout payment page
+
+  - path: /v1/checkout/sessions/{id}/pay
+    method: POST
+    action: stripe_checkout_pay_action
+    description: Simulate payment outcome for a Checkout Session
+
+  - path: /v1/checkout/sessions/
+    method: GET
+    action: stripe_get_checkout_session
+    description: Retrieve a Checkout Session
+
+  - path: /v1/payment_intents
+    method: POST
+    action: stripe_create_payment_intent
+    description: Create a PaymentIntent
+
+  - path: /v1/payment_intents/
+    method: GET
+    action: stripe_get_payment_intent
+    description: Retrieve a PaymentIntent
+
+  - path: /v1/payment_intents/{id}/confirm
+    method: POST
+    action: stripe_confirm_payment_intent
+    description: Confirm a PaymentIntent
+
+  - path: /v1/payment_intents/{id}/cancel
+    method: POST
+    action: stripe_cancel_payment_intent
+    description: Cancel a PaymentIntent
+
+  - path: /_admin/stripe/payment_intent/{id}
+    method: GET
+    action: stripe_payment_intent_admin_page
+    description: Render the PaymentIntent simulation page
+
+  - path: /_admin/stripe/payment_intent/{id}
+    method: POST
+    action: stripe_payment_intent_admin_action
+    description: Simulate PaymentIntent outcome
+
+  - path: /_admin/stripe/success
+    method: POST
+    action: stripe_simulate_success
+    description: Simulate a successful Checkout Session
+
+  - path: /_admin/stripe/fail
+    method: POST
+    action: stripe_simulate_failure
+    description: Simulate a failed Checkout Session
+
+  - path: /_admin/stripe/cancel
+    method: POST
+    action: stripe_simulate_cancel
+    description: Simulate a cancelled Checkout Session
+
+schemas:
+  requests:
+    create_checkout_session:
+      fields:
+        - name: success_url
+          json_name: success_url
+          type: string
+          required: true
+        - name: cancel_url
+          json_name: cancel_url
+          type: string
+          required: true
+        - name: line_items
+          json_name: line_items
+          type: array
+          required: true
+        - name: mode
+          json_name: mode
+          type: string
+          required: false
+        - name: customer_email
+          json_name: customer_email
+          type: string
+          required: false
+
+signature:
+  algorithm: stripe_v1
+  secret_key: providers.stripe.config.webhook_secret
+
+webhooks:
+  - name: stripe_checkout_completed
+    event: checkout.session.completed
+    method: POST
+    template:
+      id: "{{ .Reference }}"
+      object: event
+      type: "checkout.session.completed"
+
+  - name: stripe_payment_intent_succeeded
+    event: payment_intent.succeeded
+    method: POST
+    template:
+      id: "{{ .Reference }}"
+      object: event
+      type: "payment_intent.succeeded"
+
+fixtures:
+  - name: valid_checkout_session
+    route_ref: /v1/checkout/sessions
+    request:
+      success_url: http://127.0.0.1:9999/success
+      cancel_url: http://127.0.0.1:9999/cancel
+      line_items:
+        - price_data:
+            currency: usd
+            unit_amount: 1000
+            product_data:
+              name: Test Product
+          quantity: 1
+      mode: payment
+    response:
+      status: ok
+      object: checkout.session

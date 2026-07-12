@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenMuara — Simulate Fawry Payment</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.5rem; }
+    .field { margin: 12px 0; }
+    button { padding: 12px 20px; margin-right: 12px; cursor: pointer; }
+    .success { background: #22c55e; color: white; border: none; }
+    .cancel { background: #ef4444; color: white; border: none; }
+  </style>
+</head>
+<body>
+  <h1>Simulate Fawry Payment</h1>
+  <div class="field"><strong>Reference:</strong> <span id="ref">{{.Ref}}</span></div>
+  <div class="field"><strong>Amount:</strong> <span id="amount">{{.Amount}}</span> EGP</div>
+
+  <form method="POST" action="/_admin/fawry-escape">
+    <input type="hidden" name="ref" value="{{.Ref}}" />
+    <input type="hidden" name="returnUrl" value="{{.ReturnURL}}" />
+    <input type="hidden" name="status" value="PAID" />
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+    <button type="submit" class="success">Simulate Paid</button>
+  </form>
+
+  <form method="POST" action="/_admin/fawry-escape">
+    <input type="hidden" name="ref" value="{{.Ref}}" />
+    <input type="hidden" name="returnUrl" value="{{.ReturnURL}}" />
+    <input type="hidden" name="status" value="CANCELED" />
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+    <button type="submit" class="cancel">Simulate Cancel</button>
+  </form>
+</body>
+</html>

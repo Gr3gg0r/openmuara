@@ -1,0 +1,6 @@
+{
+  "order_id": "senangpay-contract-ref",
+  "payment_url": "http://localhost/_admin/senangpay-escape?order_id=senangpay-contract-ref",
+  "status": "ok",
+  "reference": "senangpay-contract-ref"
+}

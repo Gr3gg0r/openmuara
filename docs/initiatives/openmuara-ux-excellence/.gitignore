@@ -1,0 +1,6 @@
+# UX initiative local artifacts
+screenshots/
+qa/
+state/
+findings/*.log
+findings/*.png

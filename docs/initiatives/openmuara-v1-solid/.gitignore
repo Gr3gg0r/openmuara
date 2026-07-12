@@ -1,0 +1,10 @@
+# Runtime artifacts — generated during local runs, do not commit
+screenshots/
+qa/
+state/
+*.log
+
+# OS and editor files
+.DS_Store
+*.swp
+*.swo

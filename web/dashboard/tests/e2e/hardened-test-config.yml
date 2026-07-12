@@ -1,0 +1,51 @@
+server:
+  host: 127.0.0.1
+  port: 59005
+  tls_cert: ""
+  tls_key: ""
+  cors:
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed_headers:
+      - Content-Type
+      - Authorization
+      - X-CSRF-Token
+      - X-Request-ID
+    allow_credentials: false
+  csrf:
+    enabled: true
+  pprof: false
+
+admin:
+  enabled: true
+  username: admin
+  password_hash: "$2a$10$IhpEh4tQP0LUPFbjtQSPt.jA9t7/fz2zhZiMRK.BrTBhnn5L9/Lmm"
+  token: ""
+
+rate_limit:
+  enabled: true
+  requests_per_minute: 100
+
+hardened: true
+
+log:
+  level: warn
+
+persistence:
+  type: sqlite
+  path: .muara/e2e-ledger.db
+
+webhook:
+  url: "http://127.0.0.1:59005/_admin/webhook-receiver"
+
+providers:
+  default:
+    enabled: true
+    config: {}

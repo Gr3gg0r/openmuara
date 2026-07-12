@@ -1,0 +1,32 @@
+# docs/projects/<project-name>/ — Ephemeral artifacts (never committed)
+# ----------------------------------------------------------------------
+# Rule: Never commit screenshots, logs, or temp state to any repo.
+# If a document needs to persist for the team, move it to docs/.
+
+# Screenshots and visual evidence
+screenshots/
+**/screenshots/*.png
+**/screenshots/*.jpg
+**/screenshots/*.jpeg
+**/screenshots/*.gif
+**/screenshots/*.webp
+
+# Per-prompt execution folders (numbered ##/ or ##-name/)
+[0-9][0-9]/
+[0-9][0-9]-*/
+
+# Temporary and state files
+*.tmp
+*.log
+*.bak
+*.swp
+.DS_Store
+
+# Agent state snapshots (session-only)
+state/*.json
+state/*.md
+
+# QA artifacts that are ephemeral
+qa/*.png
+qa/*.jpg
+qa/*.log

@@ -1,0 +1,31 @@
+services:
+  muara:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: openmuara:latest
+    container_name: openmuara-checkout-store
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - ./.muara:/app/.muara
+    environment:
+      - MUARA_SERVER_HOST=0.0.0.0
+      - MUARA_WEBHOOK_URL=http://host.docker.internal:8080/webhook
+    command: ["start"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit-checkout-store
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1

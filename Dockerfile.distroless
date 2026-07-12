@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+# Distroless variant of the OpenMuara container image.
+# Uses the debug image which includes a minimal busybox shell so the existing
+# docker-entrypoint.sh can initialize config on first start.
+# This image has no package manager and runs as an unprivileged user.
+
+# Build stage
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /src
+
+RUN apk add --no-cache git
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Ensure dashboard-dist exists for Go embed.
+RUN mkdir -p internal/ui/dashboard-dist && \
+    (test -f internal/ui/dashboard-dist/index.html || \
+     printf '%s\n' '<html><head><title>OpenMuara</title></head><body><p>Dashboard not built. Run <code>task ui:build</code> first.</p></body></html>' > internal/ui/dashboard-dist/index.html)
+
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -buildvcs=false -ldflags="-w -s" -o /bin/muara ./cmd/muara
+
+# Prepare a writable data directory owned by the nonroot uid (65532).
+RUN mkdir -p /tmp/muara-data && chown 65532:65532 /tmp/muara-data
+
+# Runtime stage
+FROM gcr.io/distroless/static-debian12:debug-nonroot
+
+COPY --from=builder /bin/muara /usr/local/bin/muara
+COPY --from=builder /src/internal/ui/dashboard-dist/ /app/internal/ui/dashboard-dist/
+COPY --from=builder /src/plugins /app/plugins
+COPY --from=builder /src/scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --from=builder --chown=65532:65532 /tmp/muara-data /app/.muara
+
+USER nonroot:nonroot
+WORKDIR /app
+EXPOSE 9000
+
+ENTRYPOINT ["/busybox/sh", "/usr/local/bin/docker-entrypoint.sh"]
+CMD ["start"]

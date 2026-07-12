@@ -1,0 +1,73 @@
+name: Bug Hunt Prep
+
+on:
+  schedule:
+    # First of every month at 09:15 UTC — recurring bug-hunt sprint reminder.
+    - cron: '15 9 1 * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  bug-hunt-prep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for existing open bug-hunt prep issue
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'bug-hunt',
+            });
+            const exists = issues.some(i => i.title.startsWith('[bug-hunt] Prep:'));
+            core.setOutput('exists', exists ? 'true' : 'false');
+
+      - name: Create bug-hunt prep issue
+        if: steps.check.outputs.exists != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            const body = `## Bug Hunt Prep — ${today}
+
+            This issue tracks the pre-release bug-hunt sprint. Close it when the sprint is complete or explicitly deferred.
+
+            ### Entry point
+            - Start with \`docs/initiatives/openmuara-bug-hunt/prompts/01-reconnaissance.md\`.
+
+            ### Exit criteria
+            - [ ] At least 5 bugs discovered, reproduced, and documented.
+            - [ ] All P0/P1 bugs fixed or explicitly deferred with sign-off.
+            - [ ] All quality gates pass.
+            - [ ] P06 visual sign-off is complete.
+            - [ ] \`CHANGELOG.md\`, root \`TRACKING.md\`, and \`KNOWN_ISSUES.md\` are updated.
+
+            ### Useful commands
+            \`\`\`bash
+            go test ./...
+            go test -race ./...
+            golangci-lint run
+            cd web/dashboard && npm run test:ci
+            cd web/dashboard && npm run test:visual-baseline
+            ./scripts/mutation-test.sh 70
+            ./scripts/check-known-issues.sh
+            \`\`\`
+
+            cc @${context.repo.owner}`;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[bug-hunt] Prep: ${today}`,
+              body,
+              labels: ['bug-hunt', 'process'],
+            });

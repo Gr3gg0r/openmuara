@@ -1,0 +1,15 @@
+name: Documentation
+labels: [docs]
+body:
+  - type: input
+    attributes:
+      label: Page URL
+      placeholder: https://openmuara.github.io/openmuara/docs/...
+  - type: textarea
+    attributes:
+      label: What is wrong?
+      description: Describe the inaccuracy, missing information, or broken link.
+  - type: textarea
+    attributes:
+      label: Suggested change
+      description: If you have a proposed fix, paste it here.

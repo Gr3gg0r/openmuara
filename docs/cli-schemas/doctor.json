@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "muara doctor --json",
+  "description": "Structured environment and config health report from `muara doctor --json`.",
+  "type": "object",
+  "required": ["tools_healthy", "config_valid"],
+  "properties": {
+    "tools_healthy": {
+      "type": "boolean",
+      "description": "True when all required external tools are on PATH."
+    },
+    "config_load_error": {
+      "type": "string",
+      "description": "Empty when the config file loaded; otherwise the load error message."
+    },
+    "config_valid": {
+      "type": "boolean",
+      "description": "True when the loaded config has no validation errors."
+    },
+    "config_errors": {
+      "type": "array",
+      "description": "Validation errors when config_valid is false.",
+      "items": {
+        "type": "object",
+        "required": ["field", "message"],
+        "properties": {
+          "field": { "type": "string" },
+          "message": { "type": "string" },
+          "hint": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" }
+        }
+      }
+    }
+  }
+}
