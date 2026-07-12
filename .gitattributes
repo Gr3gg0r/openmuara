@@ -1,0 +1,20 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Shell scripts must use LF even on Windows
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Go source
+go.mod text
+go.sum text
+*.go text
+
+# Generated / vendored files — hide from GitHub diff and language stats
+web/dashboard/node_modules/** linguist-generated
+website/node_modules/** linguist-generated
+internal/ui/dashboard-dist/assets/** linguist-generated
+internal/ui/dashboard-dist/*.gz linguist-generated
+web/dashboard/coverage/** linguist-generated
+coverage.out linguist-generated
+coverage.html linguist-generated

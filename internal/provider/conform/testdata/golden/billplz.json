@@ -1,0 +1,45 @@
+{
+  "name": "billplz",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/v3/collections"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/collections/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v3/bills"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/bills/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v3/bills/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v3/collections/{id}/payment_methods"
+    },
+    {
+      "method": "GET",
+      "path": "/_admin/billplz/pay/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/billplz/pay/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/billplz/redirect"
+    },
+    {
+      "method": "POST",
+      "path": "/billplz/webhook"
+    }
+  ]
+}

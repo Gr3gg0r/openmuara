@@ -1,0 +1,27 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking change
+    - title: New Providers
+      labels:
+        - provider
+    - title: Security
+      labels:
+        - security
+    - title: Added
+      labels:
+        - enhancement
+    - title: Fixed
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - docs
+    - title: Maintenance
+      labels:
+        - ci/cd
+        - tech debt

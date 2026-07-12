@@ -1,0 +1,107 @@
+schema_version: v1
+
+metadata:
+  name: senangpay
+  version: 1.0.0
+  description: SenangPay gateway emulation (Malaysian payment provider)
+  author: openmuara
+  tags:
+    - regional
+    - md5
+
+runtime:
+  type: simple
+  simple:
+    charge_route: senangpay_charge
+    webhook_event: payment.completed
+    currency: MYR
+    reference_field: order_id
+    amount_field: amount
+    customer_field: email
+    response_template:
+      status: "ok"
+      order_id: "{{ .Reference }}"
+      reference: "{{ .Reference }}"
+
+routes:
+  - path: /senangpay/charge
+    method: POST
+    action: senangpay_charge
+    description: Accept a signed charge request
+    schema_ref: charge_request
+
+  - path: /senangpay/callback
+    method: GET
+    action: senangpay_callback
+    description: Receive browser callback after payment
+
+  - path: /senangpay/webhook
+    method: POST
+    action: senangpay_webhook
+    description: Receive backend webhook notification
+
+schemas:
+  requests:
+    charge_request:
+      fields:
+        - name: detail
+          json_name: detail
+          type: string
+          required: true
+        - name: amount
+          json_name: amount
+          type: number
+          required: true
+        - name: order_id
+          json_name: order_id
+          type: string
+          required: true
+        - name: name
+          json_name: name
+          type: string
+          required: false
+        - name: email
+          json_name: email
+          type: string
+          required: false
+        - name: phone
+          json_name: phone
+          type: string
+          required: false
+        - name: hash
+          json_name: hash
+          type: string
+          required: true
+
+signature:
+  algorithm: senangpay_md5
+  description: MD5 hash of secret_key + detail + amount(2 decimals) + order_id
+  fields:
+    - detail
+    - amount
+    - order_id
+    - hash
+  secret_key: providers.senangpay.config.secret_key
+
+webhooks:
+  - name: senangpay_payment
+    event: payment.completed
+    method: POST
+    template:
+      order_id: "{{ .Reference }}"
+      status_id: "{{ .StatusID }}"
+
+fixtures:
+  - name: valid_charge
+    route_ref: /senangpay/charge
+    request:
+      detail: Test payment
+      amount: 10.00
+      order_id: ORDER-1
+      name: Test User
+      email: test@example.com
+      phone: "+60123456789"
+      hash: placeholder
+    response:
+      status: ok
+      order_id: ORDER-1

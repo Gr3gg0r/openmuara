@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{.CSRFToken}}">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" id="theme-color">
+  <title>OpenMuara — Checkout</title>
+  <script>
+    (function () {
+      const key = 'muara-theme';
+      const stored = localStorage.getItem(key);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.getElementById('theme-color');
+      if (meta) meta.content = theme === 'dark' ? '#0f172a' : '#f8fafc';
+    })();
+  </script>
+  <link rel="stylesheet" href="/__muara/payment-pages.css">
+</head>
+<body>
+  <main class="muara-card">
+    <div class="muara-header">
+      <div class="muara-brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0"/>
+          <path d="M2 16c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0"/>
+          <path d="M2 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0"/>
+        </svg>
+        OpenMuara
+      </div>
+      <h1 class="muara-title">Checkout</h1>
+      <p class="muara-subtitle">Confirm your test payment details.</p>
+    </div>
+
+    <div class="muara-body">
+      <div class="muara-summary">
+        <div class="muara-summary-row">
+          <span class="muara-summary-label">Session ID</span>
+          <span class="muara-summary-value">{{.ID}}</span>
+        </div>
+        {{range .LineItems}}
+        <div class="muara-summary-row">
+          <span class="muara-summary-label">{{.Name}} x {{.Quantity}}</span>
+          <span class="muara-summary-value">{{.Amount}} {{.Currency}}</span>
+        </div>
+        {{end}}
+        <div class="muara-summary-total">
+          <span>Total</span>
+          <span>{{.AmountTotalDisplay}}</span>
+        </div>
+      </div>
+
+      <form method="POST" action="/v1/checkout/sessions/{{.ID}}/pay">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+        {{if .ShowPaymentMethodToggle}}
+        <div class="muara-field">
+          <span class="muara-label">Payment method</span>
+          <div class="muara-radio-group">
+            <label><input type="radio" name="payment_method" value="card" checked> Card</label>
+            <label><input type="radio" name="payment_method" value="fpx"> FPX</label>
+          </div>
+        </div>
+        {{end}}
+
+        {{if .ShowCard}}
+        <div class="muara-field muara-card-fields">
+          <label>Card number<input type="text" name="card_number" value="4242424242424242" class="muara-input" data-testid="card-number"></label>
+          <label>Expiry<input type="text" name="expiry" value="12/30" class="muara-input" data-testid="card-expiry"></label>
+          <label>CVC<input type="text" name="cvc" value="123" class="muara-input" data-testid="card-cvc"></label>
+        </div>
+        {{end}}
+
+        {{if .ShowFPX}}
+        <div class="muara-field">
+          <label for="fpx-bank">Bank</label>
+          <select id="fpx-bank" name="bank" class="muara-select" data-testid="fpx-bank">
+            {{range .FPXBanks}}<option value="{{.Code}}">{{.Name}}</option>{{end}}
+          </select>
+        </div>
+        {{end}}
+
+        <div class="muara-actions">
+          <button type="submit" name="action" value="confirm" class="muara-btn muara-btn--primary">Confirm payment</button>
+          <button type="submit" name="action" value="cancel" class="muara-btn muara-btn--secondary">Cancel</button>
+        </div>
+      </form>
+
+      <p class="muara-hint">This is an emulator checkout. No real card is charged.</p>
+    </div>
+
+    <footer class="muara-footer">
+      OpenMuara — local payments, flowing smoothly
+    </footer>
+  </main>
+</body>
+</html>

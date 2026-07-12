@@ -1,0 +1,392 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.1.0). Must match VERSION.'
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Verify VERSION matches tag
+        run: |
+          VERSION="$(cat VERSION)"
+          TAG="${GITHUB_REF_NAME#v}"
+          if [[ "$VERSION" != "$TAG" ]]; then
+            echo "VERSION file ($VERSION) does not match tag ($TAG)" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+  verify-changelog:
+    runs-on: ubuntu-latest
+    needs: verify-version
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Verify changelog section exists
+        run: |
+          VERSION="$(cat VERSION)"
+          if ! grep -qE "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "CHANGELOG.md is missing a section for $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Extract release notes
+        run: |
+          VERSION="$(cat VERSION)"
+          awk "/^## \\[$VERSION\\]/{flag=1;next}/^## \\[/{flag=0}flag" CHANGELOG.md > release-notes.md
+          if [[ ! -s release-notes.md ]]; then
+            echo "No changelog content found for $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [verify-version, verify-changelog]
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      security-events: write
+      attestations: write
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build-push.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26.5'
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Test
+        run: go test ./...
+
+      - name: Set version outputs
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+- ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release binaries
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          for pair in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            GOOS="${pair%/*}"
+            GOARCH="${pair#*/}"
+            EXT=""
+            [ "$GOOS" = "windows" ] && EXT=".exe"
+            BIN="muara-${GOOS}-${GOARCH}${EXT}"
+            echo "Building $BIN"
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -buildvcs=false -ldflags "-s -w -X github.com/Gr3gg0r/openmuara/internal/version.Version=$VERSION" -o "dist/$BIN" ./cmd/muara
+            tar -czf "dist/${BIN}.tar.gz" -C dist "$BIN"
+          done
+
+      - name: Generate checksums
+        id: hash
+        run: |
+          cd dist
+          sha256sum -- *.tar.gz > checksums.txt
+          cd -
+          echo "hashes=$(base64 -w0 dist/checksums.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@3452832c2d06c8c0bc7307d0f5d858ebf6fd5d29 # v3.8.2
+
+      - name: Sign checksums
+        run: |
+          cosign sign-blob --yes \
+            --output-signature dist/checksums.txt.sig \
+            --output-certificate dist/checksums.txt.crt \
+            dist/checksums.txt
+
+      - name: Generate Go SBOM
+        uses: anchore/sbom-action@f325611c7d645a49f0b2c7598e9a24e5f5ffcda7 # v0.18.0
+        with:
+          format: spdx-json
+          output-file: dist/sbom.spdx.json
+          path: .
+
+      - name: Generate npm SBOMs
+        run: |
+          cd web/dashboard && npm ci && npm sbom --package-lock-only --sbom-format=spdx > ../../dist/sbom-dashboard.spdx.json
+          cd ../../website && npm ci && npm sbom --package-lock-only --sbom-format=spdx > ../dist/sbom-website.spdx.json
+
+      - name: Set image name and tags
+        id: image
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          TAGS="${IMAGE}:${GITHUB_REF_NAME}"
+          if [[ "${{ steps.version.outputs.prerelease }}" == "false" ]]; then
+            TAGS="${TAGS}${IFS%?}${IMAGE}:latest"
+          fi
+          {
+            echo "tags<<EOF"
+            echo "$TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build image for scanning
+        run: docker build -t openmuara:scan .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@6c175e9c4083fbb36b69a55b791cd3bce129a53e # v0.30.0
+        with:
+          image-ref: openmuara:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          trivy-args: '--vex vex.json'
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@f325611c7d645a49f0b2c7598e9a24e5f5ffcda7 # v0.18.0
+        with:
+          format: spdx-json
+          output-file: dist/sbom-image.spdx.json
+          image: openmuara:scan
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=OpenMuara
+            org.opencontainers.image.description=Local-first payment virtualization layer
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Sign container image
+        run: |
+          cosign sign --yes "${{ env.IMAGE }}@${{ steps.build-push.outputs.digest }}"
+
+      - name: Build and push distroless image
+        id: build-push-distroless
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: Dockerfile.distroless
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.ref_name }}-distroless
+            ${{ steps.version.outputs.prerelease == 'false' && format('{0}:latest-distroless', env.IMAGE) || '' }}
+          labels: |
+            org.opencontainers.image.title=OpenMuara
+            org.opencontainers.image.description=Local-first payment virtualization layer (distroless)
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Sign distroless container image
+        run: |
+          cosign sign --yes "${{ env.IMAGE }}@${{ steps.build-push-distroless.outputs.digest }}"
+
+      - name: Attest distroless container image
+        uses: actions/attest-build-provenance@7668571508540a607bdfd9101b5d5316c59c3661 # v2.2.0
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build-push-distroless.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@7668571508540a607bdfd9101b5d5316c59c3661 # v2.2.0
+        with:
+          subject-path: dist/*.tar.gz
+
+      - name: Attest container image
+        uses: actions/attest-build-provenance@7668571508540a607bdfd9101b5d5316c59c3661 # v2.2.0
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.build-push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-notes
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
+            dist/checksums.txt.sig
+            dist/checksums.txt.crt
+            dist/sbom.spdx.json
+            dist/sbom-dashboard.spdx.json
+            dist/sbom-website.spdx.json
+            dist/sbom-image.spdx.json
+          body_path: dist/release-notes.md
+          fail_on_unmatched_paths: true
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+
+  provenance:
+    needs: release
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@5a775b367a56d5bd118a224a811bba288150a563 # v2.0.0
+    with:
+      base64-subjects: "${{ needs.release.outputs.hashes }}"
+      upload-assets: true
+      provenance-name: "openmuara-${{ github.ref_name }}.intoto.jsonl"
+
+  release-smoke:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26.5'
+
+      - name: Download release binary
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          curl -fsSL -o muara-linux-amd64.tar.gz \
+            "https://github.com/${{ github.repository }}/releases/download/${VERSION}/muara-linux-amd64.tar.gz"
+          tar -xzf muara-linux-amd64.tar.gz
+          chmod +x muara
+
+      - name: Run smoke test against release binary
+        run: |
+          cp muara bin/muara
+          ./scripts/smoke-test.sh
+        env:
+          MUARA_BINARY: ./muara
+
+  release-container-smoke:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.26.5'
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull release image
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          docker pull "${IMAGE}:${GITHUB_REF_NAME}"
+
+      - name: Run container smoke test
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          docker run -d --name muara-release -p 127.0.0.1:9000:9000 "${IMAGE}:${GITHUB_REF_NAME}"
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9000/healthz 2>/dev/null | grep -q '"status":"ok"'; then
+              echo "Container is healthy"
+              docker rm -f muara-release
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Container did not become healthy" >&2
+          docker logs muara-release
+          docker rm -f muara-release
+          exit 1
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [release, provenance, release-smoke, release-container-smoke]
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c379418c9 # v7.0.1
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release workflow failed for ${context.ref}`,
+              body: `The release workflow failed for ${context.ref}.\\n\\nSee run: ${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+              labels: ['release', 'incident']
+            })

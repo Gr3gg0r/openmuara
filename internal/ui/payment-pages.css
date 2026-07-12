@@ -1,0 +1,356 @@
+:root,
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: #e2e8f0;
+  --primary: #0ea5e9;
+  --primary-hover: #0284c7;
+  --primary-text: #ffffff;
+  --success: #10b981;
+  --success-hover: #059669;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --secondary-bg: #f1f5f9;
+  --secondary-bg-hover: #e2e8f0;
+  --input-bg: #ffffff;
+  --focus-ring: #0ea5e9;
+  --radius: 1rem;
+  --shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 4px 10px -4px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --primary: #38bdf8;
+  --primary-hover: #0ea5e9;
+  --primary-text: #0f172a;
+  --success: #22c55e;
+  --success-hover: #16a34a;
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --secondary-bg: #334155;
+  --secondary-bg-hover: #475569;
+  --input-bg: #0f172a;
+  --focus-ring: #38bdf8;
+  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 10px -4px rgba(0, 0, 0, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  line-height: 1.5;
+}
+
+.muara-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.muara-header {
+  padding: 1.5rem 1.5rem 0;
+}
+
+.muara-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.muara-brand svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.muara-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.muara-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin: 0.375rem 0 0;
+}
+
+.muara-body {
+  padding: 1.5rem;
+}
+
+.muara-section {
+  margin-bottom: 1.5rem;
+}
+
+.muara-section:last-child {
+  margin-bottom: 0;
+}
+
+.muara-summary {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.25rem);
+  padding: 1rem;
+}
+
+.muara-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.9375rem;
+}
+
+.muara-summary-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.muara-summary-label {
+  color: var(--text-muted);
+}
+
+.muara-summary-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.muara-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.muara-field {
+  margin-bottom: 1rem;
+}
+
+.muara-field:last-child {
+  margin-bottom: 0;
+}
+
+.muara-field label,
+.muara-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+}
+
+.muara-input,
+.muara-select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.muara-input:focus,
+.muara-select:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 20%, transparent);
+}
+
+.muara-radio-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.muara-radio-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.muara-radio-group label:hover {
+  background: var(--secondary-bg-hover);
+}
+
+.muara-radio-group input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+  margin: 0;
+}
+
+.muara-card-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.muara-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.muara-actions--stack {
+  flex-direction: column;
+}
+
+.muara-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+}
+
+.muara-btn:active {
+  transform: translateY(1px);
+}
+
+.muara-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 30%, transparent);
+}
+
+.muara-btn--primary {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.muara-btn--primary:hover {
+  background: var(--primary-hover);
+}
+
+.muara-btn--success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.muara-btn--success:hover {
+  background: var(--success-hover);
+}
+
+.muara-btn--danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.muara-btn--danger:hover {
+  background: var(--danger-hover);
+}
+
+.muara-btn--secondary {
+  background: var(--secondary-bg);
+  color: var(--text);
+}
+
+.muara-btn--secondary:hover {
+  background: var(--secondary-bg-hover);
+}
+
+.muara-footer {
+  padding: 1rem 1.5rem;
+  background: var(--secondary-bg);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.muara-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.muara-badge--sandbox {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+}
+
+.muara-hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 0;
+  }
+
+  .muara-card {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .muara-card-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .muara-actions {
+    flex-direction: column;
+  }
+}

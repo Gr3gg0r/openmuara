@@ -1,0 +1,57 @@
+{
+  "name": "stripe",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/checkout/sessions"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/checkout/sessions/{id}/pay"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/checkout/sessions/{id}/pay"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/checkout/sessions/"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/payment_intents"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/payment_intents/"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/payment_intents/{id}/confirm"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/payment_intents/{id}/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/_admin/stripe/payment_intent/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/stripe/payment_intent/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/stripe/success"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/stripe/fail"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/stripe/cancel"
+    }
+  ]
+}

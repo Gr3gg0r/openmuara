@@ -1,0 +1,14 @@
+{
+  "ignorePatterns": [
+    { "pattern": "^https?://" },
+    { "pattern": "^pathname://" },
+    { "pattern": "^mailto:" },
+    { "pattern": "^/runbooks" },
+    { "pattern": "^/docs" }
+  ],
+  "replacementPatterns": [],
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 3,
+  "fallbackRetryDelay": "1s"
+}

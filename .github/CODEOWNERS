@@ -1,0 +1,4 @@
+# Default owner for everything in the repository.
+# Used by GitHub to auto-request reviews; pair with the
+# "Require review from Code Owners" ruleset option.
+* @Gr3gg0r

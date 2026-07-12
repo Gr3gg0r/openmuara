@@ -1,0 +1,21 @@
+# OpenMuara markdown lint configuration
+
+default: true
+
+MD013:
+  line_length: 120
+  heading_line_length: 120
+  code_blocks: false
+  tables: false
+
+MD025:
+  level: 1
+  front_matter_title: ""
+
+MD033:
+  allowed_elements:
+    - details
+    - summary
+
+MD060:
+  style: consistent

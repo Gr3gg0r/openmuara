@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "muara version --json",
+  "description": "Structured version metadata from `muara version --json`.",
+  "type": "object",
+  "required": ["version", "commit", "build_time"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the binary."
+    },
+    "commit": {
+      "type": "string",
+      "description": "Git commit SHA the binary was built from."
+    },
+    "build_time": {
+      "type": "string",
+      "description": "ISO 8601 build timestamp."
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "toyyibpay",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/index.php/api/createCategory"
+    },
+    {
+      "method": "POST",
+      "path": "/index.php/api/getCategoryDetails"
+    },
+    {
+      "method": "POST",
+      "path": "/index.php/api/createBill"
+    },
+    {
+      "method": "POST",
+      "path": "/index.php/api/getBillTransactions"
+    },
+    {
+      "method": "POST",
+      "path": "/index.php/api/inactiveBill"
+    },
+    {
+      "method": "GET",
+      "path": "/_admin/toyyibpay/pay/{billCode}"
+    },
+    {
+      "method": "POST",
+      "path": "/_admin/toyyibpay/pay/{billCode}"
+    },
+    {
+      "method": "GET",
+      "path": "/toyyibpay/return"
+    },
+    {
+      "method": "POST",
+      "path": "/toyyibpay/webhook"
+    }
+  ]
+}

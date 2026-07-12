@@ -1,0 +1,15 @@
+{
+  "id": "<id>",
+  "object": "checkout.session",
+  "amount_total": 1000,
+  "currency": "usd",
+  "customer_email": "test@example.com",
+  "mode": "payment",
+  "payment_method_types": ["card"],
+  "payment_status": "unpaid",
+  "status": "open",
+  "success_url": "http://localhost/success",
+  "cancel_url": "http://localhost/cancel",
+  "url": "<url>",
+  "client_reference_id": "stripe-contract-ref"
+}

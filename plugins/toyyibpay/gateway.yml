@@ -1,0 +1,103 @@
+schema_version: v1
+
+metadata:
+  name: toyyibpay
+  version: 1.0.0
+  description: ToyyibPay API emulation for Malaysian payment testing
+  author: openmuara
+  tags:
+    - regional
+    - md5
+    - fpx
+    - malaysia
+
+runtime:
+  type: go
+  description: ToyyibPay uses the built-in Go provider because it requires category/bill storage and form-encoded API flows.
+
+routes:
+  - path: /index.php/api/createCategory
+    method: POST
+    action: toyyibpay_create_category
+    description: Create a category
+
+  - path: /index.php/api/getCategoryDetails
+    method: POST
+    action: toyyibpay_get_category_details
+    description: Retrieve category details
+
+  - path: /index.php/api/createBill
+    method: POST
+    action: toyyibpay_create_bill
+    description: Create a bill
+
+  - path: /index.php/api/getBillTransactions
+    method: POST
+    action: toyyibpay_get_bill_transactions
+    description: Retrieve bill transactions
+
+  - path: /index.php/api/inactiveBill
+    method: POST
+    action: toyyibpay_inactive_bill
+    description: Deactivate a bill
+
+  - path: /_admin/toyyibpay/pay/{billCode}
+    method: GET
+    action: toyyibpay_pay_page
+    description: Render local payment page
+
+  - path: /_admin/toyyibpay/pay/{billCode}
+    method: POST
+    action: toyyibpay_pay_action
+    description: Simulate payment outcome
+
+  - path: /toyyibpay/return
+    method: GET
+    action: toyyibpay_return
+    description: Merchant return callback
+
+  - path: /toyyibpay/webhook
+    method: POST
+    action: toyyibpay_webhook
+    description: Incoming callback receiver with MD5 hash verification
+
+signature:
+  algorithm: toyyibpay_md5
+  secret_key: providers.toyyibpay.config.user_secret_key
+
+webhooks:
+  - name: toyyibpay_payment
+    event: payment.completed
+    method: POST
+    template:
+      billcode: "{{ .Reference }}"
+      status: "1"
+
+fixtures:
+  - name: valid_category
+    route_ref: /index.php/api/createCategory
+    request:
+      userSecretKey: muara-secret-key
+      categoryName: OpenMuara Category
+      categoryDescription: Test category
+      categoryStatus: 1
+    response:
+      categoryCode: cat_openmuara
+      categoryName: OpenMuara Category
+      categoryStatus: 1
+
+  - name: valid_bill
+    route_ref: /index.php/api/createBill
+    request:
+      userSecretKey: muara-secret-key
+      categoryCode: cat_openmuara
+      billName: Test Bill
+      billDescription: Test
+      billAmount: 1250
+      billReturnUrl: http://127.0.0.1:9999/return
+      billCallbackUrl: http://127.0.0.1:9999/callback
+      billPaymentChannel: 0
+    response:
+      billCode: bill_openmuara
+      billName: Test Bill
+      billAmount: 1250

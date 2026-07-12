@@ -1,0 +1,44 @@
+
+# Runtime artifacts — generated during local runs, do not commit
+queue-logs/
+examples/checkout-store/checkout-store
+screenshots/
+qa/
+state/
+*.log
+.muara/
+
+# Build artifacts
+bin/
+coverage.out
+coverage.html
+web/dashboard/coverage/
+
+# Generated screenshots / QA artifacts
+dashboard-mobile-*.png
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+*.swp
+*.swo
+.vscode/settings.json
+.idea/
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+*.tmp
+
+# Generated dashboard assets (placeholder index.html remains tracked)
+internal/ui/dashboard-dist/assets/
+internal/ui/dashboard-dist/*.gz
+
+# Playwright outputs
+test-results/
+playwright-report/

@@ -1,0 +1,19 @@
+{
+  "success_url": "http://localhost/success",
+  "cancel_url": "http://localhost/cancel",
+  "line_items": [
+    {
+      "price_data": {
+        "currency": "usd",
+        "unit_amount": 1000,
+        "product_data": {
+          "name": "Contract Test Product"
+        }
+      },
+      "quantity": 1
+    }
+  ],
+  "mode": "payment",
+  "customer_email": "test@example.com",
+  "client_reference_id": "stripe-contract-ref"
+}

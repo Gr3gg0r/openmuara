@@ -1,0 +1,9 @@
+# .actrc — local GitHub Actions validation with nektos/act
+#
+# Install act: https://nektosact.com/installation/index.html
+# Run a specific job: act -j docker-build
+# Run the release workflow with a test event: act -j release --eventpath .github/test-events/release.json
+
+-P ubuntu-latest=catthehacker/ubuntu:act-22.04
+--secret GITHUB_TOKEN=${GITHUB_TOKEN}
+--artifact-server-path /tmp/act-artifacts

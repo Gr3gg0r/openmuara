@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a problem with OpenMuara
+title: '[bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections
+        below so we can reproduce and fix the issue quickly. This template aligns
+        with the OpenMuara bug register format.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: When I send a Fawry charge request, the server returns 400 ...
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is the bug?
+      options:
+        - P0 — crash, security vulnerability, data loss, or broken primary flow
+        - P1 — broken feature or UX regression blocking a common use case
+        - P2 — polish, edge case, or cosmetic issue
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area of OpenMuara is affected?
+      options:
+        - provider
+        - webhook
+        - config
+        - UI
+        - CLI
+        - build / test
+        - docs
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the exact commands or code needed to reproduce the bug.
+      placeholder: |
+        1. Run `muara init && muara start`
+        2. Send `POST /fawry/charge` with payload ...
+        3. Observe error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `muara doctor` and your OS / Go / Node versions.
+      placeholder: |
+        - OS: macOS 15
+        - Go: 1.26
+        - muara: 0.1.1
+        - Output of `muara doctor --json`:
+    validations:
+      required: false
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root cause (if known)
+      description: nil guard, race, config drift, validation gap, routing mismatch, provider contract drift, UI state bug, a11y markup, test flake, documentation gap, dependency vulnerability.
+    validations:
+      required: false
+  - type: textarea
+    id: regression_test
+    attributes:
+      label: Regression test idea
+      description: If you can sketch a test that fails before the fix and passes after, paste it here.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Paste any error messages, stack traces, or response bodies.
+      render: shell
+    validations:
+      required: false

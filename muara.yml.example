@@ -1,0 +1,109 @@
+server:
+  host: 127.0.0.1
+  port: 9000
+  # Optional second port for the admin UI; when set, provider endpoints stay on port.
+  # admin_port: 9001
+  # External URL used for payment links when behind a reverse proxy or tunnel.
+  public_base_url: ""
+  # Optional separate external URL for the admin UI. Use this when the admin
+  # dashboard is served on a different subdomain (e.g. admin.muara.example.com)
+  # instead of a different port on the same host.
+  admin_public_base_url: ""
+  tls_cert: ""
+  tls_key: ""
+  cors:
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed_headers:
+      - Content-Type
+      - Authorization
+      - X-CSRF-Token
+      - X-Request-ID
+    allow_credentials: false
+  csrf:
+    enabled: true
+  pprof: false
+
+# Admin authentication for /_admin and admin JSON APIs only.
+# Provider emulation endpoints remain unauthenticated.
+admin:
+  enabled: false
+  username: ""
+  password_hash: ""
+  token: ""
+
+# Read-only dashboard access for testers. Viewers can inspect the ledger,
+# transactions, and webhook log, but cannot change providers or webhooks.
+viewer:
+  enabled: false
+  username: ""
+  password_hash: ""
+  token: ""
+
+# In-memory rate limiting. No external dependencies.
+rate_limit:
+  enabled: false
+  requests_per_minute: 100
+
+# Hardened mode enables admin auth, rate limiting, and strict security headers.
+# You must configure admin credentials when hardened is true.
+hardened: false
+
+log:
+  level: info
+
+persistence:
+  type: sqlite
+  path: .muara/data/ledger.db
+
+# Generic provider configuration. Each key must match a registered provider name.
+providers:
+  fawry:
+    enabled: true
+    config:
+      merchant_code: muara-merchant-code
+      merchant_security_key: muara-fawry-secret
+      webhook_secret: muara-webhook-secret
+      # Fawry supports v1 (legacy payload) and v2 (server notification).
+      # Defaults to v1. Use v2 to emulate the Fawry V2 notification format.
+      version: v1
+  default:
+    enabled: true
+    config: {}
+  stripe:
+    enabled: false
+    config:
+      publishable_key: pk_test_muara
+      secret_key: sk_test_muara
+      webhook_secret: whsec_muara
+  senangpay:
+    enabled: false
+    config:
+      secret_key: muara-senangpay-secret
+  billplz:
+    enabled: false
+    config:
+      api_key: muara-billplz-api-key
+      x_signature_key: muara-billplz-x-signature
+      collection_id: ""
+  toyyibpay:
+    enabled: false
+    config:
+      user_secret_key: muara-toyyibpay-secret
+      category_code: ""
+  ipay88:
+    enabled: false
+    config:
+      merchant_code: muara-ipay88-merchant
+      merchant_key: muara-ipay88-key
+
+webhook:
+  url: ""
+  max_retries: 3

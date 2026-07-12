@@ -1,0 +1,21 @@
+{
+  "name": "senangpay",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/senangpay/charge"
+    },
+    {
+      "method": "GET",
+      "path": "/senangpay/callback"
+    },
+    {
+      "method": "GET",
+      "path": "/senangpay/query"
+    },
+    {
+      "method": "POST",
+      "path": "/senangpay/webhook"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+services:
+  muara:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openmuara:latest
+    container_name: openmuara
+    read_only: true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - muara-data:/app/.muara
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    environment:
+      - MUARA_SERVER_HOST=0.0.0.0
+    command: ["start"]
+    healthcheck:
+      test: ["CMD", "muara", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  muara-data:

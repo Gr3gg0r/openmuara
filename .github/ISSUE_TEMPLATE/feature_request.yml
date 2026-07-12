@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an idea for OpenMuara
+title: '[feature] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your idea. Please describe the use case and the
+        provider or area of OpenMuara it relates to.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem are you trying to solve? What is missing?
+      placeholder: I am testing a Stripe Billing integration and need ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature or behavior you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Are there workarounds or other approaches you have tried?
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of OpenMuara does this relate to?
+      options:
+        - Provider emulation
+        - Dashboard / UI
+        - CLI
+        - Webhooks
+        - Security
+        - Docs / onboarding
+        - Other
+    validations:
+      required: false

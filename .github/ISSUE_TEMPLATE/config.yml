@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/Gr3gg0r/openmuara/discussions
+    about: Use GitHub Discussions for general questions and ideas.
+  - name: Report a security issue
+    url: https://github.com/Gr3gg0r/openmuara/security/advisories/new
+    about: Please report security vulnerabilities privately.

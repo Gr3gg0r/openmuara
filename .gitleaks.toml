@@ -1,0 +1,8 @@
+title = "OpenMuara gitleaks configuration"
+
+[allowlist]
+description = "Shell scripts use environment variables for local test credentials"
+regexes = [
+  # curl -u "${ENV_VAR}:" is a common local-emulation pattern, not a real secret.
+  '''^\$\{[A-Z_][A-Z0-9_]*\}:$''',
+]

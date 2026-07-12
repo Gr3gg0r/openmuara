@@ -1,0 +1,66 @@
+server:
+  host: 127.0.0.1
+  port: 9001
+  admin_port: ""
+  public_base_url: ""
+  tls_cert: ""
+  tls_key: ""
+  cors:
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed_headers:
+      - Content-Type
+      - Authorization
+      - X-CSRF-Token
+      - X-Request-ID
+    allow_credentials: false
+  csrf:
+    enabled: true
+  pprof: false
+
+admin:
+  enabled: false
+
+viewer:
+  enabled: false
+
+rate_limit:
+  enabled: false
+
+hardened: false
+
+log:
+  level: info
+
+persistence:
+  type: sqlite
+  path: .muara-e2e/data/ledger.db
+
+# Webhook dispatch is disabled for e2e because OpenMuara's synchronous
+# dispatcher currently deadlocks with SQLite (SQLITE_BUSY). The checkout-store
+# webhook endpoint is tested separately with a manual POST.
+webhook:
+  url: ""
+  max_retries: 3
+
+providers:
+  fawry:
+    enabled: true
+    config:
+      merchant_code: muara-merchant-code
+      merchant_security_key: muara-fawry-secret
+      webhook_secret: muara-webhook-secret
+      version: v1
+  stripe:
+    enabled: true
+    config:
+      publishable_key: pk_test_muara
+      secret_key: sk_test_muara
+      webhook_secret: whsec_muara

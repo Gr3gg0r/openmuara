@@ -1,0 +1,16 @@
+.DS_Store
+node_modules
+dist-ssr
+*.local
+*.log
+
+# Playwright test artifacts.
+test-results/
+playwright-report/
+playwright/.cache/
+
+# E2E runtime data.
+.muara-e2e/
+
+# Commit the built SPA so `go run .` works without installing Node.
+!dist/

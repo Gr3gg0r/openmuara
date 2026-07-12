@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{.CSRFToken}}">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" id="theme-color">
+  <title>Stripe Webhooks - OpenMuara</title>
+  <script>
+    (function () {
+      const key = 'muara-theme';
+      const stored = localStorage.getItem(key);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.getElementById('theme-color');
+      if (meta) meta.content = theme === 'dark' ? '#0f172a' : '#f8fafc';
+    })();
+  </script>
+  <style>
+    :root,
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-text: #ffffff;
+      --input-bg: #ffffff;
+      --readonly-bg: #f1f5f9;
+      --focus-ring: #2563eb;
+      --link: #2563eb;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-text: #ffffff;
+      --input-bg: #0f172a;
+      --readonly-bg: #334155;
+      --focus-ring: #60a5fa;
+      --link: #93c5fd;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    .container { max-width: 640px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+    label { display: block; margin-bottom: 16px; font-size: 0.875rem; font-weight: 600; }
+    input[type="url"], input[type="text"] { display: block; width: 100%; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; background: var(--input-bg); color: var(--text); }
+    input[type="url"]:focus, input[type="text"]:focus { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+    input[readonly] { background: var(--readonly-bg); color: var(--muted); }
+    fieldset { border: 1px solid var(--border); border-radius: 4px; padding: 12px 16px; margin: 0 0 16px; }
+    legend { font-size: 0.875rem; font-weight: 600; padding: 0 6px; }
+    fieldset label { display: flex; align-items: center; gap: 8px; font-weight: 500; margin-bottom: 8px; }
+    fieldset input { width: auto; margin: 0; }
+    button { padding: 10px 16px; border: none; border-radius: 4px; background: var(--primary); color: var(--primary-text); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    button:hover { background: var(--primary-hover); }
+    .back { display: inline-block; margin-bottom: 16px; color: var(--link); text-decoration: none; font-size: 0.875rem; }
+    .back:hover { text-decoration: underline; }
+  button:focus { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main><div class="container">
+    <a class="back" href="/_admin">&larr; Back to dashboard</a>
+    <h1>Stripe Webhook Configuration</h1>
+
+    <form method="POST" action="/_admin/stripe/webhooks">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <label>Webhook URL
+        <input type="url" name="webhook_url" value="{{.URL}}" placeholder="http://127.0.0.1:9000/_admin/webhook-receiver">
+      </label>
+
+      <fieldset>
+        <legend>Enabled events</legend>
+        {{range .Events}}
+        <label>
+          <input type="checkbox" name="enabled_events" value="{{.Name}}" {{if .Checked}}checked{{end}}>
+          {{.Name}}
+        </label>
+        {{end}}
+      </fieldset>
+
+      <label>Webhook secret (read-only)
+        <input type="text" value="{{.WebhookSecret}}" readonly>
+      </label>
+
+      <button type="submit">Save</button>
+    </form>
+  </div></main>
+</body>
+</html>

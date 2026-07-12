@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{.CSRFToken}}">
+  <meta name="muara-admin-api" content="{{.AdminAPIBaseURL}}">
+  <meta name="muara-role" content="{{.Role}}">
+  <meta name="description" content="OpenMuara local-first payment virtualization dashboard">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" id="theme-color">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚡%3C/text%3E%3C/svg%3E">
+  <title>OpenMuara Dashboard</title>
+  <script>
+    (function () {
+      const key = 'muara-theme';
+      const stored = localStorage.getItem(key);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.getElementById('theme-color');
+      if (meta) meta.content = theme === 'dark' ? '#0f172a' : '#f8fafc';
+    })();
+  </script>
+  <script type="module" crossorigin src="/dashboard-assets/assets/index.js"></script>
+  <link rel="stylesheet" crossorigin href="/dashboard-assets/assets/index.css">
+</head>
+<body>
+  <div id="app"></div>
+</body>
+</html>
