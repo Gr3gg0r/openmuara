@@ -19,7 +19,7 @@ jobs:
 
       - name: Check for existing open bug-hunt prep issue
         id: check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: issues } = await github.rest.issues.listForRepo({
@@ -33,7 +33,7 @@ jobs:
 
       - name: Create bug-hunt prep issue
         if: steps.check.outputs.exists != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const today = new Date().toISOString().split('T')[0];
