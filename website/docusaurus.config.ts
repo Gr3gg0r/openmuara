@@ -2,9 +2,35 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
+// Elide marker-delimited blocks from docs and runbooks before render.
+// Runs on the CommonMark AST (format: 'md'), where the marker comments
+// parse as html nodes. The pattern is a regex so the line-based elision
+// in the publish pipeline never matches this file's own source.
+type MdastNode = {type: string; value?: string; children?: MdastNode[]};
+const MARKER = /harness:(start|end)/;
+function remarkStripHarness() {
+  return (tree: {children: MdastNode[]}) => {
+    const out: MdastNode[] = [];
+    let skipping = false;
+    for (const node of tree.children) {
+      if (node.type === 'html' && typeof node.value === 'string') {
+        const match = node.value.match(MARKER);
+        if (match) {
+          skipping = match[1] === 'start';
+          continue;
+        }
+      }
+      if (!skipping) {
+        out.push(node);
+      }
+    }
+    tree.children = out;
+  };
+}
+
 const config: Config = {
   title: 'OpenMuara',
-  tagline: 'Local-first payment virtualization for developers',
+  tagline: 'Emulate the providers your app integrates with, locally',
   favicon: 'img/logo.svg',
 
   future: {
@@ -18,6 +44,13 @@ const config: Config = {
   projectName: 'openmuara',
 
   onBrokenLinks: 'throw',
+
+  // Parse .md docs/runbooks as CommonMark (not MDX). The marker comments
+  // are HTML comments that MDX rejects; CommonMark tolerates them, and
+  // remarkStripHarness elides the blocks.
+  markdown: {
+    format: 'md',
+  },
 
   i18n: {
     defaultLocale: 'en',
@@ -33,6 +66,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/Gr3gg0r/openmuara/tree/main/',
           routeBasePath: 'docs',
+          beforeDefaultRemarkPlugins: [remarkStripHarness],
           exclude: [
             'cli-schemas/**',
           ],
@@ -54,6 +88,7 @@ const config: Config = {
         routeBasePath: 'runbooks',
         sidebarPath: './sidebarsRunbooks.ts',
         editUrl: 'https://github.com/Gr3gg0r/openmuara/tree/main/',
+        beforeDefaultRemarkPlugins: [remarkStripHarness],
       } satisfies import('@docusaurus/plugin-content-docs').Options,
     ],
     [

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" role="img" aria-label="OpenMuara flow: your app points at OpenMuara on port 9000, OpenMuara emulates the provider, you complete the flow on a simulation page, and your app receives a signed webhook, while the ledger and dashboard record everything." font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- card -->
+  <rect x="0" y="0" width="960" height="340" rx="16" fill="#0f172a"/>
+  <rect x="0.5" y="0.5" width="959" height="339" rx="16" fill="none" stroke="#1e293b"/>
+
+  <!-- connectors to ledger (drawn under nodes) -->
+  <g stroke="#334155" stroke-width="1.5" stroke-dasharray="4 5" fill="none">
+    <line x1="120" y1="172" x2="120" y2="232"/>
+    <line x1="355" y1="172" x2="355" y2="232"/>
+    <line x1="590" y1="172" x2="590" y2="232"/>
+    <line x1="825" y1="172" x2="825" y2="232"/>
+  </g>
+
+  <!-- arrows between steps -->
+  <g stroke="#64748b" stroke-width="2" fill="none">
+    <line x1="212" y1="127" x2="258" y2="127" marker-end="url(#arrow)"/>
+    <line x1="447" y1="127" x2="493" y2="127" marker-end="url(#arrow)"/>
+    <line x1="682" y1="127" x2="728" y2="127" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- step 1 -->
+  <g>
+    <rect x="30" y="82" width="180" height="90" rx="12" fill="#1e293b" stroke="#334155"/>
+    <circle cx="50" cy="102" r="11" fill="#3b82f6"/><text x="50" y="106" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">1</text>
+    <text x="70" y="107" font-size="17" font-weight="700" fill="#f1f5f9">Your app</text>
+    <text x="46" y="138" font-size="12.5" fill="#94a3b8">Point the base URL at</text>
+    <text x="46" y="156" font-size="12.5" fill="#94a3b8">127.0.0.1:9000</text>
+  </g>
+
+  <!-- step 2 (hub) -->
+  <g>
+    <rect x="265" y="82" width="180" height="90" rx="12" fill="#16243a" stroke="#3b82f6"/>
+    <circle cx="285" cy="102" r="11" fill="#3b82f6"/><text x="285" y="106" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">2</text>
+    <text x="305" y="107" font-size="17" font-weight="700" fill="#60a5fa">OpenMuara</text>
+    <text x="281" y="138" font-size="12.5" fill="#94a3b8">Emulates the provider</text>
+    <text x="281" y="156" font-size="12.5" fill="#94a3b8">locally, offline, headless</text>
+  </g>
+
+  <!-- step 3 -->
+  <g>
+    <rect x="500" y="82" width="180" height="90" rx="12" fill="#1e293b" stroke="#334155"/>
+    <circle cx="520" cy="102" r="11" fill="#3b82f6"/><text x="520" y="106" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">3</text>
+    <text x="540" y="107" font-size="17" font-weight="700" fill="#f1f5f9">Simulation page</text>
+    <text x="516" y="138" font-size="12.5" fill="#94a3b8">Complete or cancel</text>
+    <text x="516" y="156" font-size="12.5" fill="#94a3b8">the outcome on demand</text>
+  </g>
+
+  <!-- step 4 -->
+  <g>
+    <rect x="735" y="82" width="180" height="90" rx="12" fill="#1e293b" stroke="#334155"/>
+    <circle cx="755" cy="102" r="11" fill="#34d399"/><text x="755" y="106" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">4</text>
+    <text x="775" y="107" font-size="17" font-weight="700" fill="#f1f5f9">Your app</text>
+    <text x="751" y="138" font-size="12.5" fill="#94a3b8">Receives the signed</text>
+    <text x="751" y="156" font-size="12.5" fill="#94a3b8">webhook — no tunnel</text>
+  </g>
+
+  <!-- ledger bar -->
+  <g>
+    <rect x="30" y="232" width="885" height="72" rx="12" fill="#0b1f3a" stroke="#1d4ed8"/>
+    <text x="480" y="264" font-size="15" font-weight="700" fill="#bfdbfe" text-anchor="middle">Ledger + dashboard at /_admin</text>
+    <text x="480" y="286" font-size="12.5" fill="#93c5fd" text-anchor="middle">Every request, callback, and webhook — recorded, searchable, replayable</text>
+  </g>
+</svg>

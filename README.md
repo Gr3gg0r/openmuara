@@ -7,28 +7,58 @@
 [![License](https://img.shields.io/github/license/Gr3gg0r/openmuara)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Gr3gg0r/openmuara/badge)](https://scorecard.dev/viewer/?uri=github.com/Gr3gg0r/openmuara)
 
-Local-first billing and payment virtualization layer. Emulate payment providers
-offline, fast, and headlessly — checkout flows, subscriptions, and webhooks
-included.
+Run the providers your app integrates with, locally. OpenMuara emulates checkout,
+callback, and webhook flows on your own machine — offline, fast, and headless.
+No live accounts, no tunnels, no surprise charges.
 
 **Documentation:** [https://gr3gg0r.github.io/openmuara/](https://gr3gg0r.github.io/openmuara/)
 
+![OpenMuara ledger — every request, callback, and webhook in one feed](website/static/img/shots/ledger-light.png)
+
+## How it works
+
+1. **Start OpenMuara.** `muara init && muara start` — it listens on `127.0.0.1:9000`.
+2. **Point your app at it.** Use `http://127.0.0.1:9000` as the base URL instead of the live provider.
+3. **Run the flow.** Trigger a charge, complete it on the simulation page, and
+   watch the callback, webhook, and ledger update in one dashboard at `/_admin`.
+
+![How OpenMuara sits between your app and the provider](website/static/img/flow-diagram.svg)
+
+### Headless by design
+
+The dashboard is optional — the `muara` CLI drives every step, so the whole
+flow drops straight into scripts and CI:
+
+```bash
+# start the local engine
+muara init --defaults
+muara start
+
+# force an outcome, then fire the signed webhook — no browser needed
+muara scenario success tx-123
+muara webhook replay tx-123
+
+# script it all — JSON output for CI
+muara transaction list --json
+```
+
+Full reference in [`docs/cli.md`](docs/cli.md).
+
 ## Why OpenMuara
 
-Payment integrations are painful to test. Sandboxes are limited or nonexistent,
-every gateway speaks a slightly different dialect, and webhooks — the part that
-actually moves money in your app — cannot be triggered on demand from your
-laptop.
+Integrations like these are painful to test. Sandboxes are limited or nonexistent,
+every provider speaks a slightly different dialect, and webhooks — the part that
+actually moves money in your app — cannot be triggered on demand from your laptop.
 
-OpenMuara emulates payment providers locally: checkout flows, subscriptions,
-signatures, callbacks, and webhooks, all offline and headless. Point your test
-app at it and run the whole journey on your own machine.
+OpenMuara emulates providers locally: checkout flows, signatures, callbacks, and
+webhooks, all offline and headless. Point your test app at it and run the full
+checkout-to-webhook cycle on your own machine.
 
 ### The name
 
 *Muara* is Malay for "estuary" — where the river meets the sea. I am from Muar,
 a town in Johor, Malaysia, and the name carries both meanings for me. Payment
-gateways across Southeast Asia are fragmented and thinly documented, and webhook
+providers across Southeast Asia are fragmented and thinly documented, and webhook
 debugging was a constant struggle on every project I touched. OpenMuara is the
 tool that struggle produced: a calm layer where your app meets the messy world
 of payments, before either of you goes near the real thing.
@@ -138,11 +168,17 @@ See [`docs/operations.md`](docs/operations.md) for deployment, observability, an
 
 ## Providers
 
-OpenMuara ships emulations for popular international and regional payment
-gateways. Each provider plugin is contract-faithful — request and response
-shapes, signature verification, and escape pages to simulate payment outcomes —
-so integration code behaves the same against OpenMuara as it would against the
-real sandbox.
+OpenMuara ships contract-faithful emulations — request and response shapes,
+signature verification, and escape pages to simulate outcomes — so integration
+code behaves the same against OpenMuara as it would against the real sandbox.
+
+![Supported providers, enabled from the dashboard](website/static/img/shots/providers-light.png)
+
+**Supported today:** Stripe, Fawry, SenangPay, iPay88, Billplz, and ToyyibPay.
+
+**On the roadmap (help wanted):** Adyen, Xendit, and more major Southeast Asia
+platforms. Providers are plugins — see
+[`docs/contributing-providers.md`](docs/contributing-providers.md) to add yours.
 
 See [`docs/providers/`](docs/providers/) for per-provider guides and worked
 examples.
