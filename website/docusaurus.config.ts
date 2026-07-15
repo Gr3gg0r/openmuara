@@ -2,9 +2,31 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
+// runbooks before render, mirroring scripts/publish-openmuara.sh so workshop-only
+// content never reaches the public site. Runs on the CommonMark AST (format: 'md'),
+// where the marker comments parse as html nodes.
+type MdastNode = {type: string; value?: string; children?: MdastNode[]};
+function remarkStripHarness() {
+  return (tree: {children: MdastNode[]}) => {
+    const out: MdastNode[] = [];
+    let skipping = false;
+    for (const node of tree.children) {
+      if (node.type === 'html' && typeof node.value === 'string') {
+          skipping = false;
+          continue;
+        }
+      }
+      if (!skipping) {
+        out.push(node);
+      }
+    }
+    tree.children = out;
+  };
+}
+
 const config: Config = {
   title: 'OpenMuara',
-  tagline: 'Local-first payment virtualization for developers',
+  tagline: 'Emulate the providers your app integrates with, locally',
   favicon: 'img/logo.svg',
 
   future: {
@@ -19,21 +41,7 @@ const config: Config = {
 
   onBrokenLinks: 'throw',
 
-  i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
-  },
-
-  presets: [
-    [
-      'classic',
-      {
-        docs: {
-          path: '../docs',
-          sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/Gr3gg0r/openmuara/tree/main/',
-          routeBasePath: 'docs',
-          exclude: [
+  // Parse .md docs/runbooks as CommonMark (not MDX). The workshop's
             'cli-schemas/**',
           ],
         },
@@ -54,6 +62,7 @@ const config: Config = {
         routeBasePath: 'runbooks',
         sidebarPath: './sidebarsRunbooks.ts',
         editUrl: 'https://github.com/Gr3gg0r/openmuara/tree/main/',
+        beforeDefaultRemarkPlugins: [remarkStripHarness],
       } satisfies import('@docusaurus/plugin-content-docs').Options,
     ],
     [
